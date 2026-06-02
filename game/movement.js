@@ -85,15 +85,15 @@ function checkPassCondition(targetRoomId) {
         }
     }
 
-    // 男爵宅邸大门通行检查
+    // 伯爵宅邸大门通行检查
     if (targetRoomId === 'mansion_gate') {
         const hasMansionKey = gameState.player.inventory.some(item => item && item.id === 'mansion_key');
         if (!hasMansionKey) {
             print("");
             print(`<span style="color: #ffaa66;">═══════════════════════════</span>`);
-            print(`<span style="color: #ffaa66;">男爵宅邸的大门紧闭着。</span>`);
+            print(`<span style="color: #ffaa66;">伯爵宅邸的大门紧闭着。</span>`);
             print(`<span style="color: #888;">沉重的橡木大门上挂着一把巨大的铁锁。</span>`);
-            print(`<span style="color: #666;">（你需要男爵宅邸钥匙才能进入...）</span>`);
+            print(`<span style="color: #666;">（你需要伯爵宅邸钥匙才能进入...）</span>`);
             print(`<span style="color: #ffaa66;">═══════════════════════</span>`);
             return false;
         }

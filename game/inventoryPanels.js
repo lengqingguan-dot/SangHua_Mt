@@ -10,7 +10,7 @@ function showInventoryPanel() {
     html += `<div style="text-align:center;">${generateInventoryCategoryMenu()}</div>`;
     const inv = gameState.player.inventory;
     if (inv.length === 0) { html += `你的行囊空空如也。\n`; }
-    else { inv.forEach(item => { html += `  ▫️ <span style="color:#b7c9e2;text-decoration:underline;cursor:pointer;" onclick="examineItemFromPanel('${item.id}')">${item.name}</span> ${getItemEmoji(item)}\n`; }); }
+    else { inv.forEach(item => { const displayName = item.rarity ? getEquipmentDisplayName(item) : item.name; html += `  ▫️ <span style="text-decoration:underline;cursor:pointer;" onclick="examineItemFromPanel('${item.id}')">${displayName}</span> ${getItemEmoji(item)}\n`; }); }
     html += centerLine() + `<div style="text-align:center;"><span style="color:#aaa;cursor:pointer;" onclick="showInventoryPanel()">↩️ 关闭</span></div>`;
     UI.setDetail(html); currentPanel = 'inventory';
 }
@@ -36,7 +36,7 @@ function showInventoryCategory(category) {
         case 'misc': filtered = inv.filter(i => i.type === 'misc' && !i.id.includes('corpse') && !i.story && !i.ingredientType && !i.dismemberable && !i.milkItem); break;
     }
     if (filtered.length === 0) { html += `该分类下没有物品。\n`; }
-    else { filtered.forEach(item => { html += `  ▫️ <span style="color:#b7c9e2;text-decoration:underline;cursor:pointer;" onclick="examineItemFromPanel('${item.id}')">${item.name}</span> ${getItemEmoji(item)}\n`; }); }
+    else { filtered.forEach(item => { const displayName = item.rarity ? getEquipmentDisplayName(item) : item.name; html += `  ▫️ <span style="text-decoration:underline;cursor:pointer;" onclick="examineItemFromPanel('${item.id}')">${displayName}</span> ${getItemEmoji(item)}\n`; }); }
     html += centerLine() + `<div style="text-align:center;"><span style="color:#aaa;cursor:pointer;" onclick="showInventoryPanel()">↩️ 返回物品栏</span></div>`;
     UI.setDetail(html); currentPanel = 'inventory';
 }
@@ -46,7 +46,7 @@ function showInventoryAll() {
     html += `<div style="text-align:center;">${generateInventoryCategoryMenu()}</div>`;
     const inv = gameState.player.inventory;
     if (inv.length === 0) { html += `你的行囊空空如也。\n`; }
-    else { inv.forEach(item => { html += `  ▫️ <span style="color:#b7c9e2;text-decoration:underline;cursor:pointer;" onclick="examineItemFromPanel('${item.id}')">${item.name}</span> ${getItemEmoji(item)}\n`; }); }
+    else { inv.forEach(item => { const displayName = item.rarity ? getEquipmentDisplayName(item) : item.name; html += `  ▫️ <span style="text-decoration:underline;cursor:pointer;" onclick="examineItemFromPanel('${item.id}')">${displayName}</span> ${getItemEmoji(item)}\n`; }); }
     html += centerLine() + `<div style="text-align:center;"><span style="color:#aaa;cursor:pointer;" onclick="showInventoryPanel()">↩️ 关闭</span></div>`;
     UI.setDetail(html); currentPanel = 'inventory';
 }
@@ -177,7 +177,8 @@ function showEquipmentPanel() {
     let html = makeTitle('当前装备');
     ['weapon','armor','accessory'].forEach(slot => {
         const item = gameState.player.equipment[slot];
-        html += item ? `🔸${slot}:<span style="color:#b7c9e2;text-decoration:underline;cursor:pointer;" onclick="examineEquippedItem('${slot}')">${item.name}</span>\n`
+        const equipName = item ? (item.rarity ? getEquipmentDisplayName(item) : item.name) : '';
+        html += item ? `🔸${slot}:<span style="text-decoration:underline;cursor:pointer;" onclick="examineEquippedItem('${slot}')">${equipName}</span>\n`
                      : `🔸${slot}:<span style="color:#888;">（空）</span>\n`;
     });
     html += centerLine() + `⚔️总攻击:${getCharacterAttack(gameState.player)} | 🛡️总防御:${getCharacterDefense(gameState.player)} | 💨总灵巧:${getCharacterAgility(gameState.player)}` + centerLine();

@@ -37,8 +37,8 @@ const PORTAL_DEFS = {
     // === 需要钥匙的传送门 ===
     side_gate_door:           { targetRoom: "forest_start",         travelText: "你使用矿场侧门钥匙打开了铁门...门后是一条通往森林的小路。",
                                  requiresKey: "mine_side_key",       keyFailMsg: "侧门被牢牢锁住。你需要矿场侧门钥匙。" },
-    mansion_gate_door:        { targetRoom: "mansion_front_yard",   travelText: "你使用男爵宅邸钥匙打开了沉重的大门...宅邸内部的庭院展现在眼前。",
-                                 requiresKey: "mansion_key",         keyFailMsg: "大门被牢牢锁住。你需要男爵宅邸钥匙。" },
+    mansion_gate_door:        { targetRoom: "mansion_front_yard",   travelText: "你使用伯爵宅邸钥匙打开了沉重的大门...宅邸内部的庭院展现在眼前。",
+                                 requiresKey: "mansion_key",         keyFailMsg: "大门被牢牢锁住。你需要伯爵宅邸钥匙。" },
 
     // === 洞穴/地道入口 ===
     tunnel_entrance:          { targetRoom: "basement",             travelText: "你小心翼翼地钻进了地道..." },

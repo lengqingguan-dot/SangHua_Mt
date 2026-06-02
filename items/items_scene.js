@@ -201,9 +201,9 @@ Object.assign(ITEM_TEMPLATES, {
     },
     mansion_gate_door: {
         id: "mansion_gate_door",
-        name: "男爵宅邸大门",
+        name: "伯爵宅邸大门",
         type: "misc",
-        desc: "一座宏伟的石制大门，由厚重的橡木制成，表面镶嵌着铁艺花纹。需要使用男爵宅邸钥匙才能进入。",
+        desc: "一座宏伟的石制大门，由厚重的橡木制成，表面镶嵌着铁艺花纹。需要使用伯爵宅邸钥匙才能进入。",
         usable: true,
         customAction: true
     },

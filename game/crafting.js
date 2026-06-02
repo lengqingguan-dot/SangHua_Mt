@@ -19,11 +19,8 @@ const WORKBENCH_RECIPES = {
     weapons: {
         name: '武器', icon: '⚔️',
         items: [
-            { id: 'craft_greatsword', name: '大剑', desc: '一柄沉重的大剑，剑身宽厚，劈砍力度惊人。', atk: 15, agi: -2, materials: ['iron_ore×3', 'stone×2', 'wood×1'], materialIds: [{ id: 'iron_ore', count: 3 }, { id: 'stone', count: 2 }, { id: 'wood', count: 1 }], resultEffect: '攻击力+15，灵巧-2' },
-            { id: 'craft_katana', name: '太刀', desc: '一柄弧度优美的长刀，刀身狭长锋利。', atk: 10, agi: 5, materials: ['iron_ore×2', 'wood×2'], materialIds: [{ id: 'iron_ore', count: 2 }, { id: 'wood', count: 2 }], resultEffect: '攻击力+10，灵巧+5' },
-            { id: 'craft_iron_armor', name: '盔甲', desc: '一套用铁片铆接而成的简陋盔甲。', def: 8, agi: -3, materials: ['iron_ore×4', 'stone×1'], materialIds: [{ id: 'iron_ore', count: 4 }, { id: 'stone', count: 1 }], resultEffect: '防御力+8，灵巧-3' },
-            { id: 'craft_leather_armor', name: '皮甲', desc: '一件用兽皮缝制的轻便皮甲。', def: 4, agi: 2, materials: ['rag×3', 'stone×1'], materialIds: [{ id: 'rag', count: 3 }, { id: 'stone', count: 1 }], resultEffect: '防御力+4，灵巧+2' },
-            { id: 'craft_bow', name: '弓箭', desc: '一把用弯曲木条和筋绳绑制的简易弓。', atk: 8, agi: 3, materials: ['wood×3', 'rag×1', 'stone×2'], materialIds: [{ id: 'wood', count: 3 }, { id: 'rag', count: 1 }, { id: 'stone', count: 2 }], resultEffect: '攻击力+8，灵巧+3' }
+            { id: 'crafted_knight_greatsword', name: '骑士大剑·改', desc: '熔铸骑士大剑并镶嵌莉娅娜的腿骨与头颅，剑身更重更锋锐，无视敌人50%护甲。', atk: 30, agi: -2, rarity: 'epic', slot: 'weapon', crafted: true, armorPenetration: 0.5, resultTemplate: 'crafted_knight_greatsword', materials: ['莉娅娜的腿×1', '莉娅娜的头颅×1', '骑士大剑×1', '铁矿石×1'], materialIds: [{ id: 'liana_leg', count: 1 }, { id: 'liana_head', count: 1 }, { id: 'knight_greatsword', count: 1 }, { id: 'iron_ore', count: 1 }], resultEffect: '攻击+30 灵巧-2 无视50%护甲' },
+            { id: 'crafted_knight_armor', name: '骑士板甲·改', desc: '将莉娅娜的肋骨熔铸进骑士板甲中，形成骨钢复合层，减免10%物理伤害。', def: 25, agi: -2, rarity: 'epic', slot: 'armor', crafted: true, physicalDamageReduction: 0.1, resultTemplate: 'crafted_knight_armor', materials: ['莉娅娜的躯干×1', '骑士板甲×1'], materialIds: [{ id: 'liana_torso', count: 1 }, { id: 'knight_armor', count: 1 }], resultEffect: '防御+25 灵巧-2 减免10%物理伤害' }
         ]
     }
 };
@@ -62,6 +59,28 @@ function startCraftingProcess(category, recipeId) {
     matIndices.forEach(indices => indices.sort((a, b) => b - a).forEach(idx => player.inventory.splice(idx, 1)));
     clearDetailPanel(); currentPanel = null;
     print(`<span style="color:#88ccff;">你站在工作台前，拿起铁锤和铁钳...</span>`);
+
+    // 如果有 resultTemplate，从 ITEM_TEMPLATES 深拷贝创建
+    if (recipe.resultTemplate) {
+        const template = ITEM_TEMPLATES[recipe.resultTemplate];
+        if (template) {
+            const craftStory = ["你将材料一件件摆放在工作台上。", "炉火重新燃起，铁钳夹住烧红的铁块——", "叮！叮！叮！火星四溅，铁块在锤击下逐渐成形。", "锻造完成了！一件崭新的作品诞生在你的手中。"];
+            let i = 0;
+            function next() {
+                if (i < craftStory.length) { print(`<span style="color:#88ccff;">${craftStory[i]}</span>`); i++; setTimeout(next, 800); }
+                else {
+                    const craftedItem = JSON.parse(JSON.stringify(template));
+                    craftedItem.id = recipe.id + '_' + Date.now();
+                    player.inventory.push(craftedItem);
+                    print(`<span style="color:#ffdd44;">🔨获得了「${craftedItem.name}」！</span>`);
+                    updateSceneInfo();
+                }
+            }
+            next();
+            return;
+        }
+    }
+
     const craftStory = ["你将材料一件件摆放在工作台上。", "炉火重新燃起，铁钳夹住烧红的铁块——", "叮！叮！叮！火星四溅，铁块在锤击下逐渐成形。", "锻造完成了！一件崭新的作品诞生在你的手中。"];
     let i = 0; function next() { if (i < craftStory.length) { print(`<span style="color:#88ccff;">${craftStory[i]}</span>`); i++; setTimeout(next, 800); } else { const craftedItem = { id: recipe.id + '_' + Date.now(), name: recipe.name, type: recipe.atk ? 'weapon' : (recipe.def ? 'armor' : 'misc'), desc: recipe.desc, usable: true }; if (recipe.atk) { craftedItem.atk = recipe.atk; craftedItem.slot = 'weapon'; } if (recipe.def) { craftedItem.def = recipe.def; craftedItem.slot = 'armor'; } if (recipe.agi) craftedItem.agi = recipe.agi; if (recipe.effect) { craftedItem.effect = recipe.effect; craftedItem.value = recipe.value; } player.inventory.push(craftedItem); print(`<span style="color:#ffdd44;">🔨获得了「${recipe.name}」！</span>`); updateSceneInfo(); } }
     next();

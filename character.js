@@ -235,6 +235,8 @@ const CHARACTER_TEMPLATES = {
         level: 5,
         hp: 200,
         maxHp: 200,
+        sp: 100,
+        maxSp: 100,
         atk: 40,
         def: 50,
         agi: 20,
@@ -834,14 +836,29 @@ function getCharacterAgility(character) {
 }
 
 // 计算实际伤害（攻击力 ±60% 浮动）
-function calculateDamage(baseAtk, targetDef) {
+// attackerEq: 攻击方装备对象（可选，用于护甲穿透）
+// defenderEq: 防守方装备对象（可选，用于物理伤害减免）
+function calculateDamage(baseAtk, targetDef, attackerEq, defenderEq) {
     // 攻击力随机浮动 ±60%
     const variance = 0.6;
     const randomFactor = 1 + (Math.random() * variance * 2 - variance);
     const finalAtk = Math.floor(baseAtk * randomFactor);
     
-    // 伤害 = 攻击力 - 防御力，最小为1
-    return Math.max(1, finalAtk - targetDef);
+    // ★ 护甲穿透：无视目标一定比例的防御
+    let effectiveDef = targetDef;
+    if (attackerEq && attackerEq.weapon && attackerEq.weapon.armorPenetration) {
+        effectiveDef = Math.floor(targetDef * (1 - attackerEq.weapon.armorPenetration));
+    }
+    
+    // 伤害 = 攻击力 - 有效防御力，最小为1
+    let damage = Math.max(1, finalAtk - effectiveDef);
+    
+    // ★ 物理伤害减免：减少受到的物理攻击伤害
+    if (defenderEq && defenderEq.armor && defenderEq.armor.physicalDamageReduction) {
+        damage = Math.max(1, Math.floor(damage * (1 - defenderEq.armor.physicalDamageReduction)));
+    }
+    
+    return damage;
 }
 
 // 判断是否闪避（基于灵巧）

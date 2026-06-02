@@ -45,6 +45,35 @@ function getItemEmoji(item) {
     return '📦';
 }
 
+// 装备稀有度颜色映射
+const RARITY_COLORS = {
+    normal:    '#c0c0c0',
+    good:      '#66cc66',
+    rare:      '#6699ff',
+    epic:      '#cc66ff',
+    legendary: '#ff8844'
+};
+
+const RARITY_NAMES = {
+    normal:    '普通',
+    good:      '优良',
+    rare:      '稀有',
+    epic:      '罕见',
+    legendary: '珍品'
+};
+
+function getRarityColor(rarity) {
+    return RARITY_COLORS[rarity] || '#c0c0c0';
+}
+
+function getEquipmentDisplayName(item) {
+    if (!item || !item.rarity) return item ? item.name : '';
+    const color = getRarityColor(item.rarity);
+    const prefix = item.crafted ? '<span style="color:' + color + ';">★</span>' : '';
+    const rarityLabel = RARITY_NAMES[item.rarity] || '';
+    return prefix + '【' + rarityLabel + '】<span style="color:' + color + ';">' + item.name + '</span>';
+}
+
 // 从背包查找物品
 function findItemById(itemId) {
     return gameState.player.inventory.find(item => item.id === itemId) || null;
@@ -178,6 +207,14 @@ function teleportViaMirror(roomId) {
     updateMinimap();
     updateSceneInfo();
     StoryEngine.check();
+}
+
+// ★ 骑士套检测
+function hasKnightSetBonus() {
+    const eq = gameState.player.equipment;
+    return eq.weapon && (eq.weapon.id === 'knight_greatsword' || eq.weapon.id.startsWith('crafted_knight_greatsword'))
+        && eq.armor && (eq.armor.id === 'knight_armor' || eq.armor.id.startsWith('crafted_knight_armor'))
+        && eq.accessory && eq.accessory.id === 'knight_emblem';
 }
 
 // 查看状态
