@@ -71,6 +71,27 @@ function hideNextBtn() {
     UI.toggleNextBtn(false);
 }
 
+// 统一判定：物品是否不可拾取（供 look.js、pickup.js 共用）
+// 需同时检查 item 对象的 notPickable 属性和 itemId 模式匹配
+function isItemUnpickable(itemOrId) {
+    // 支持传入 item 对象或 itemId 字符串
+    const item = (typeof itemOrId === 'string') ? getItemInfoById(itemOrId) : itemOrId;
+    const itemId = (typeof itemOrId === 'string') ? itemOrId : (item ? item.id : '');
+
+    if (item && item.notPickable) return true;
+    if (item && item.type === 'portal') return true;
+
+    // ID 模式匹配 —— 场景交互类物品不可拾取
+    const unpickablePatterns = [
+        'ladder', 'dynamite', 'heavy_wooden_door', 'medium_wooden_door',
+        'spiral_stairs', 'stairs_to_', 'stove', 'milker', 'workbench',
+        'mansion_gate_door', 'wooden_hut', 'hut_door', 'side_gate_door',
+        'randolph_statue', 'stone_wall', 'wardrobe', 'mine_pit',
+        'teleport_circle', 'tunnel_entrance', 'leaf_pile'
+    ];
+    return unpickablePatterns.some(p => itemId.includes(p));
+}
+
 // 西侧矿道红色场景检测
 function isMine4Area(roomId) {
     return ['tunnel_4_west_4', 'tunnel_4_west_5', 'tunnel_4_west_6', 'tunnel_4_west_7'].includes(roomId);

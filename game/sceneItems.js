@@ -3,6 +3,172 @@
 //  地面物品信息展示 + 场景物品交互（铁锁、木门、雕像）  
 // ============================================================
 
+// ============================================================
+//  场景物品交互映射表
+//  每个条目定义：(可选)id匹配规则 + (可选)body匹配规则 + 操作生成函数
+//  按注册顺序匹配，第一个匹配到的条目生效
+// ============================================================
+const GROUND_ITEM_ACTIONS = [
+
+    // --- 传送门（优先级最高，需检查 PORTAL_DEFS） ---
+    {
+        match(itemId, item) { return !!PORTAL_DEFS[itemId]; },
+        actions(itemId, item, html) {
+            html.push(`<div><span style="color: #cc9966; text-decoration: underline; cursor: pointer;" onclick="usePortal('${itemId}')">🪜 使用</span></div>`);
+        }
+    },
+    {
+        match(itemId, item) { return itemId === 'ladder'; },
+        actions(itemId, item, html) {
+            html.push(`<div><span style="color: #cc9966; text-decoration: underline; cursor: pointer;" onclick="useSupervisorLadder()">🪜 使用木梯</span></div>`);
+        }
+    },
+
+    // --- 撤走的梯子 ---
+    {
+        match(itemId, item) { return itemId === 'removed_ladder' || (itemId.includes('removed_ladder') && itemId.includes('_dropped_')); },
+        actions(itemId, item, html) {
+            html.push(`<div><span style="color: #aaffaa; text-decoration: underline; cursor: pointer;" onclick="useRemovedLadder('${itemId}')">🪜 使用</span></div>`);
+            html.push(`<div><span style="color: #aaffaa; text-decoration: underline; cursor: pointer;" onclick="pickupItem('${itemId}')">📦 拾取</span></div>`);
+        }
+    },
+
+    // --- 铁锁 ---
+    {
+        match(itemId, item) { return itemId === 'iron_lock'; },
+        actions(itemId, item, html) {
+            const hasKey = gameState.player.inventory.some(invItem => invItem && invItem.id === 'mine_exit_4_key');
+            if (hasKey) html.push(`<div><span style="color: #aaffaa; text-decoration: underline; cursor: pointer;" onclick="openIronLockWithKey('${itemId}')">🔑 使用四号矿井口钥匙</span></div>`);
+            html.push(`<div><span style="color: #ffaa66; text-decoration: underline; cursor: pointer;" onclick="breakLock('${itemId}')">⚔️ 破坏铁锁</span></div>`);
+        }
+    },
+
+    // --- 门 ---
+    {
+        match(itemId, item) { return itemId === 'heavy_wooden_door'; },
+        actions(itemId, item, html) {
+            html.push(`<div><span style="color: #ffaa66; text-decoration: underline; cursor: pointer;" onclick="breakDoor('${itemId}', 'heavy')">⚔️ 强行破门</span></div>`);
+        }
+    },
+    {
+        match(itemId, item) { return itemId.includes('medium_wooden_door'); },
+        actions(itemId, item, html) {
+            html.push(`<div><span style="color: #ffaa66; text-decoration: underline; cursor: pointer;" onclick="breakDoor('${itemId}', 'medium')">⚔️ 强行破门</span></div>`);
+        }
+    },
+
+    // --- 雕像 ---
+    {
+        match(itemId, item) { return itemId === 'randolph_statue'; },
+        actions(itemId, item, html) {
+            html.push(`<div><span style="color: #ff6666; text-decoration: underline; cursor: pointer;" onclick="pushStatue('${itemId}')">💪 推倒雕像</span></div>`);
+        }
+    },
+    {
+        match(itemId, item) { return itemId.includes('statue_base'); },
+        actions(itemId, item, html) {
+            html.push(`<div><span style="color: #ffaa66; text-decoration: underline; cursor: pointer;" onclick="rebuildStatue('${itemId}')">🔨 重建雕像</span></div>`);
+        }
+    },
+
+    // --- 功能性设施（early return 类型）---
+    {
+        match(itemId, item) { return itemId === 'stove'; },
+        actions(itemId, item, html) {
+            html.push(`<div><span style="color: #ff8844; text-decoration: underline; cursor: pointer;" onclick="useStove('${itemId}')">🍳 烹饪</span></div>`);
+        },
+        earlyReturn: true
+    },
+    {
+        match(itemId, item) { return itemId === 'workbench'; },
+        actions(itemId, item, html) {
+            html.push(`<div><span style="color: #88ccff; text-decoration: underline; cursor: pointer;" onclick="useWorkbench('${itemId}')">🔨 锻造</span></div>`);
+        },
+        earlyReturn: true
+    },
+    {
+        match(itemId, item) { return itemId === 'milker'; },
+        actions(itemId, item, html) {
+            html.push(`<div><span style="color: #ffddaa; text-decoration: underline; cursor: pointer;" onclick="useMilker('${itemId}')">🥛 榨奶</span></div>`);
+        },
+        earlyReturn: true
+    },
+    {
+        match(itemId, item) { return itemId === 'dynamite'; },
+        actions(itemId, item, html) {
+            html.push(`<div><span style="color: #ff4444; text-decoration: underline; cursor: pointer;" onclick="useDynamite('${itemId}')">💥 使用雷管</span></div>`);
+        },
+        earlyReturn: true
+    },
+    {
+        match(itemId, item) { return itemId === 'leaf_pile'; },
+        actions(itemId, item, html) {
+            html.push(`<div><span style="color: #aaffaa; text-decoration: underline; cursor: pointer;" onclick="sweepLeafPile()">🍃 扫开落叶</span></div>`);
+        },
+        earlyReturn: true
+    },
+    {
+        match(itemId, item) { return itemId === 'tunnel_entrance'; },
+        actions(itemId, item, html) {
+            html.push(`<div><span style="color: #aaffaa; text-decoration: underline; cursor: pointer;" onclick="enterTunnel()">🕳️ 进入地道</span></div>`);
+        },
+        earlyReturn: true
+    },
+    {
+        match(itemId, item) { return itemId === 'teleport_circle' || itemId === 'mod_teleport_circle'; },
+        actions(itemId, item, html) {
+            html.push(`<div><span style="color: #6688ff; text-decoration: underline; cursor: pointer;" onclick="useTeleportCircle('${itemId}')">🌀 查看传送阵</span></div>`);
+        },
+        earlyReturn: true
+    },
+    {
+        match(itemId, item) { return itemId === 'wardrobe'; },
+        actions(itemId, item, html) {
+            html.push(`<div><span style="color: #aaccff; text-decoration: underline; cursor: pointer;" onclick="searchWardrobe('${itemId}')">🔍 翻找</span></div>`);
+        },
+        earlyReturn: true
+    },
+
+    // --- 石壁 ---
+    {
+        match(itemId, item) { return itemId === 'stone_wall'; },
+        actions(itemId, item, html) {
+            html.push(`<div><span style="color: #ffaa66; text-decoration: underline; cursor: pointer;" onclick="mineStoneWall('${itemId}')">⛏️ 挖掘</span></div>`);
+        }
+    },
+
+    // --- 卡伦镇/桑华山矿场入口 ---
+    {
+        match(itemId, item) { return itemId === 'karen_town'; },
+        actions(itemId, item, html) {
+            html.push(`<div><span style="color: #aaffaa; text-decoration: underline; cursor: pointer;" onclick="StoryEngine.triggerUseItem('${itemId}')">🚶 进入</span></div>`);
+        },
+        earlyReturn: true
+    },
+    {
+        match(itemId, item) { return itemId === 'sanghuashan_mine'; },
+        actions(itemId, item, html) {
+            html.push(`<div><span style="color: #ff8844; text-decoration: underline; cursor: pointer;" onclick="useItemFromDetail('${itemId}')">🚶 进入</span></div>`);
+        },
+        earlyReturn: true
+    },
+
+    // --- 尸体（使用 item 属性判定） ---
+    {
+        match(itemId, item) { return itemId.includes('corpse'); },
+        actions(itemId, item, html) {
+            if (item.corpseStory || item.usable) html.push(`<div><span style="color: #ff66aa; text-decoration: underline; cursor: pointer;" onclick="useCorpseOnGround('${itemId}')">🔞 互动</span></div>`);
+            if (item.loot && item.loot.length > 0) html.push(`<div><span style="color: #ffdd44; text-decoration: underline; cursor: pointer;" onclick="lootCorpse('${itemId}')">✨ 搜刮</span></div>`);
+            if (item.dismemberable) html.push(`<div><span style="color: #ff6b6b; text-decoration: underline; cursor: pointer;" onclick="dismemberItem('${itemId}')">🔪 肢解</span></div>`);
+            if (!item.notPickable) {
+                html.push(`<div><span style="color: #aaffaa; text-decoration: underline; cursor: pointer;" onclick="pickupItem('${itemId}')">📦 拾取</span></div>`);
+                const sameCount = countSameItemsOnGround(item.name);
+                if (sameCount > 1) html.push(`<div><span style="color: #aaffaa; text-decoration: underline; cursor: pointer;" onclick="pickupAllSameItems('${item.name}')">📥 全部拾取(${sameCount}个)</span></div>`);
+            }
+        }
+    }
+];
+
 // 显示地面物品信息到详情栏
 function showGroundItemInfo(itemId) {
     const item = getItemInfoById(itemId);
@@ -28,107 +194,33 @@ function showGroundItemInfo(itemId) {
     }
     html += centerLine();
 
-    // ★ 传送门类型统一处理
-    if (PORTAL_DEFS[itemId]) {
-        html += `<div><span style="color: #cc9966; text-decoration: underline; cursor: pointer;" onclick="usePortal('${itemId}')">🪜 使用</span></div>`;
-    }
-    // 需特殊处理的传送门（不在 PORTAL_DEFS 中）
-    else if (itemId === 'ladder') {
-        html += `<div><span style="color: #cc9966; text-decoration: underline; cursor: pointer;" onclick="useSupervisorLadder()">🪜 使用木梯</span></div>`;
-    }
-    // 撤走的梯子
-    else if (itemId === 'removed_ladder' || (itemId.includes('removed_ladder') && itemId.includes('_dropped_'))) {
-        html += `<div><span style="color: #aaffaa; text-decoration: underline; cursor: pointer;" onclick="useRemovedLadder('${itemId}')">🪜 使用</span></div>`;
-        html += `<div><span style="color: #aaffaa; text-decoration: underline; cursor: pointer;" onclick="pickupItem('${itemId}')">📦 拾取</span></div>`;
-    }
-    // 铁锁
-    else if (itemId === 'iron_lock') {
-        const hasKey = gameState.player.inventory.some(item => item && item.id === 'mine_exit_4_key');
-        if (hasKey) html += `<div><span style="color: #aaffaa; text-decoration: underline; cursor: pointer;" onclick="openIronLockWithKey('${itemId}')">🔑 使用四号矿井口钥匙</span></div>`;
-        html += `<div><span style="color: #ffaa66; text-decoration: underline; cursor: pointer;" onclick="breakLock('${itemId}')">⚔️ 破坏铁锁</span></div>`;
-    }
-    // 厚重的木门
-    else if (itemId === 'heavy_wooden_door') {
-        html += `<div><span style="color: #ffaa66; text-decoration: underline; cursor: pointer;" onclick="breakDoor('${itemId}', 'heavy')">⚔️ 强行破门</span></div>`;
-    }
-    // 中等木门
-    else if (itemId.includes('medium_wooden_door')) {
-        html += `<div><span style="color: #ffaa66; text-decoration: underline; cursor: pointer;" onclick="breakDoor('${itemId}', 'medium')">⚔️ 强行破门</span></div>`;
-    }
-    // 雕像
-    else if (itemId === 'randolph_statue') {
-        html += `<div><span style="color: #ff6666; text-decoration: underline; cursor: pointer;" onclick="pushStatue('${itemId}')">💪 推倒雕像</span></div>`;
-    }
-    // 炉灶
-    else if (itemId === 'stove') {
-        html += `<div><span style="color: #ff8844; text-decoration: underline; cursor: pointer;" onclick="useStove('${itemId}')">🍳 烹饪</span></div>`;
-        UI.setDetail(html); currentPanel = 'ground_item'; currentDetailItem = itemId; return;
-    }
-    // 工作台
-    else if (itemId === 'workbench') {
-        html += `<div><span style="color: #88ccff; text-decoration: underline; cursor: pointer;" onclick="useWorkbench('${itemId}')">🔨 锻造</span></div>`;
-        UI.setDetail(html); currentPanel = 'ground_item'; currentDetailItem = itemId; return;
-    }
-    // 榨奶器
-    else if (itemId === 'milker') {
-        html += `<div><span style="color: #ffddaa; text-decoration: underline; cursor: pointer;" onclick="useMilker('${itemId}')">🥛 榨奶</span></div>`;
-        UI.setDetail(html); currentPanel = 'ground_item'; currentDetailItem = itemId; return;
-    }
-    // 雷管
-    else if (itemId === 'dynamite') {
-        html += `<div><span style="color: #ff4444; text-decoration: underline; cursor: pointer;" onclick="useDynamite('${itemId}')">💥 使用雷管</span></div>`;
-        UI.setDetail(html); currentPanel = 'ground_item'; currentDetailItem = itemId; return;
-    }
-    // 落叶堆
-    else if (itemId === 'leaf_pile') {
-        html += `<div><span style="color: #aaffaa; text-decoration: underline; cursor: pointer;" onclick="sweepLeafPile()">🍃 扫开落叶</span></div>`;
-        UI.setDetail(html); currentPanel = 'ground_item'; currentDetailItem = itemId; return;
-    }
-    // 地道入口
-    else if (itemId === 'tunnel_entrance') {
-        html += `<div><span style="color: #aaffaa; text-decoration: underline; cursor: pointer;" onclick="enterTunnel()">🕳️ 进入地道</span></div>`;
-        UI.setDetail(html); currentPanel = 'ground_item'; currentDetailItem = itemId; return;
-    }
-    // 传送阵
-    else if (itemId === 'teleport_circle' || itemId === 'mod_teleport_circle') {
-        html += `<div><span style="color: #6688ff; text-decoration: underline; cursor: pointer;" onclick="useTeleportCircle('${itemId}')">🌀 查看传送阵</span></div>`;
-        UI.setDetail(html); currentPanel = 'ground_item'; currentDetailItem = itemId; return;
-    }
-    // 壁橱
-    else if (itemId === 'wardrobe') {
-        html += `<div><span style="color: #aaccff; text-decoration: underline; cursor: pointer;" onclick="searchWardrobe('${itemId}')">🔍 翻找</span></div>`;
-        UI.setDetail(html); currentPanel = 'ground_item'; currentDetailItem = itemId; return;
-    }
-    // 石壁
-    else if (itemId === 'stone_wall') {
-        html += `<div><span style="color: #ffaa66; text-decoration: underline; cursor: pointer;" onclick="mineStoneWall('${itemId}')">⛏️ 挖掘</span></div>`;
-    }
-    // 雕像底座（可重建）
-    else if (itemId.includes('statue_base')) {
-        html += `<div><span style="color: #ffaa66; text-decoration: underline; cursor: pointer;" onclick="rebuildStatue('${itemId}')">🔨 重建雕像</span></div>`;
-    }
-    // 卡伦镇/桑华山矿场
-    else if (itemId === 'karen_town') {
-        html += `<div><span style="color: #aaffaa; text-decoration: underline; cursor: pointer;" onclick="StoryEngine.triggerUseItem('${itemId}')">🚶 进入</span></div>`;
-        UI.setDetail(html); currentPanel = 'ground_item'; currentDetailItem = itemId; return;
-    }
-    else if (itemId === 'sanghuashan_mine') {
-        html += `<div><span style="color: #ff8844; text-decoration: underline; cursor: pointer;" onclick="useItemFromDetail('${itemId}')">🚶 进入</span></div>`;
-        UI.setDetail(html); currentPanel = 'ground_item'; currentDetailItem = itemId; return;
-    }
-    // 尸体
-    else if (itemId.includes('corpse')) {
-        if (item.corpseStory || item.usable) html += `<div><span style="color: #ff66aa; text-decoration: underline; cursor: pointer;" onclick="useCorpseOnGround('${itemId}')">🔞 互动</span></div>`;
-        if (item.loot && item.loot.length > 0) html += `<div><span style="color: #ffdd44; text-decoration: underline; cursor: pointer;" onclick="lootCorpse('${itemId}')">✨ 搜刮</span></div>`;
-        if (item.dismemberable) html += `<div><span style="color: #ff6b6b; text-decoration: underline; cursor: pointer;" onclick="dismemberItem('${itemId}')">🔪 肢解</span></div>`;
-        if (!item.notPickable) {
-            html += `<div><span style="color: #aaffaa; text-decoration: underline; cursor: pointer;" onclick="pickupItem('${itemId}')">📦 拾取</span></div>`;
-            const sameCount = countSameItemsOnGround(item.name);
-            if (sameCount > 1) html += `<div><span style="color: #aaffaa; text-decoration: underline; cursor: pointer;" onclick="pickupAllSameItems('${item.name}')">📥 全部拾取(${sameCount}个)</span></div>`;
+    // ★ 使用映射表生成交互按钮
+    const actionLines = [];
+    let matched = false;
+    let needsEarlyReturn = false;
+
+    for (const entry of GROUND_ITEM_ACTIONS) {
+        if (entry.match(itemId, item)) {
+            entry.actions(itemId, item, actionLines);
+            matched = true;
+            if (entry.earlyReturn) needsEarlyReturn = true;
+            break; // 第一个匹配生效
         }
     }
-    // 普通物品拾取
-    else if (!item.notPickable) {
+
+    html += actionLines.join('');
+
+    // 如果映射表要求 early return（如功能性设施），直接提交面板
+    if (needsEarlyReturn) {
+        html += `<div><span style="color: #aaa; cursor: pointer;" onclick="clearDetailPanel()">↩️ 返回</span></div>`;
+        currentDetailItem = itemId;
+        UI.setDetail(html);
+        currentPanel = 'ground_item';
+        return;
+    }
+
+    // 未匹配到特殊交互 且 物品可拾取 → 显示拾取按钮
+    if (!matched && !item.notPickable) {
         html += `<div><span style="color: #aaffaa; text-decoration: underline; cursor: pointer;" onclick="pickupItem('${itemId}')">✨ 拾取</span></div>`;
         const sameCount = countSameItemsOnGround(item.name);
         if (sameCount > 1) html += `<div><span style="color: #aaffaa; text-decoration: underline; cursor: pointer;" onclick="pickupAllSameItems('${item.name}')">📥 全部拾取(${sameCount}个)</span></div>`;

@@ -56,11 +56,7 @@ function pickupAllItems() {
     room.items.forEach(itemId => {
         const item = getItemInfoById(itemId);
         if (!item) return;
-        if (item.notPickable || item.type === 'portal' || itemId.includes('ladder') || itemId === 'dynamite' ||
-            itemId === 'heavy_wooden_door' || itemId.includes('medium_wooden_door') ||
-            itemId.includes('spiral_stairs') || itemId.includes('stairs_to_') ||
-            itemId === 'stove' || itemId === 'workbench' || itemId === 'milker' || itemId === 'wardrobe' ||
-            itemId === 'mansion_gate_door' || itemId === 'wooden_hut' || itemId === 'hut_door' || itemId === 'stone_wall') {
+        if (isItemUnpickable(item)) {
             itemsToKeep.push(itemId); return;
         }
         itemsToPickup.push({ id: itemId, item: item });

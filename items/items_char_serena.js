@@ -1,0 +1,12 @@
+// 瑟蕾娜·紫雾的肢体/尸体/乳汁
+Object.assign(ITEM_TEMPLATES, {
+    serena_head: { id: "serena_head", name: "瑟蕾娜的头颅", type: "misc", usable: true, customAction: true, cookable: true, ingredientType: "head", desc: "一颗优雅到近乎完美的女性头颅，属于法师瑟蕾娜·紫雾。淡紫色长发如丝绸般垂落，每一根发丝都带着无法言喻的流畅光泽，仿佛被最纯净的魔力洗练过。脸型精致高贵，青紫色的瞳孔半睁着，残留着深邃而摄人心魄的冷冽光辉。嘴唇丰满红润，微微张开。脖颈断面整齐，鲜血从细嫩的颈部血管渗出，却无法掩盖她那超越凡人的极致美感。", story: ["【占位符：瑟蕾娜头颅剧情尚未开发】"] },
+    serena_torso: { id: "serena_torso", name: "瑟蕾娜的躯干", type: "misc", usable: true, customAction: true, cookable: true, ingredientType: "meat", desc: "这个被切断的躯干即使失去四肢与乳房，仍不失优雅的美感，属于法师瑟蕾娜·紫雾。腰肢纤细柔韧，每一寸曲线都流畅到极致，像被最精妙的魔力雕琢出的完美弧度。小腹平坦光滑，皮肤白皙细腻得近乎透明，带着无法言喻的魔力美感。", story: ["【占位符：瑟蕾娜躯干剧情尚未开发】"] },
+    serena_leg: { id: "serena_leg", name: "瑟蕾娜的腿", type: "misc", cookable: true, ingredientType: "leg", resultDish: "serena_leg_steak", desc: "一条修长有力却优雅到极致的腿，属于法师瑟蕾娜·紫雾。皮肤白皙细腻，线条流畅得如同最完美的雕塑，每一次光线变化都带来不同的惊艳。" },
+    serena_foot: { id: "serena_foot", name: "瑟蕾娜的脚", type: "misc", usable: true, customAction: true, cookable: true, ingredientType: "foot", resultDish: "serena_foot_dish", desc: "一只纤细却美得惊心动魄的脚，属于法师瑟蕾娜·紫雾。脚掌柔软，脚趾匀称修长，脚背弧度优美到近乎艺术品，脚踝线条精致得让人移不开眼。", story: ["【占位符：瑟蕾娜的脚剧情尚未开发】"] },
+    serena_arm: { id: "serena_arm", name: "瑟蕾娜的手臂", type: "misc", cookable: true, ingredientType: "arm", resultDish: "serena_arm_dish", desc: "一条修长丰满的手臂，属于法师瑟蕾娜·紫雾。皮肤白皙细腻得近乎透明，每一寸线条都流畅优雅，带着无法复制的魔力般的完美比例。" },
+    serena_hand: { id: "serena_hand", name: "瑟蕾娜的手", type: "misc", usable: true, customAction: true, cookable: true, ingredientType: "hand", resultDish: "serena_hand_dish", desc: "一只修长优雅得令人屏息的手，属于法师瑟蕾娜·紫雾。手指纤细，指甲呈现完美的深紫色光泽，指尖线条流畅到极致。", story: ["【占位符：瑟蕾娜的手剧情尚未开发】"] },
+    serena_breast: { id: "serena_breast", name: "瑟蕾娜的乳房", type: "misc", cookable: true, ingredientType: "breast", resultDish: "serena_breast_dish", milkItem: "serena_milk", maxMilkCount: 3, desc: "一只饱满挺拔的D罩杯乳房，属于法师瑟蕾娜·紫雾。皮肤白皙细腻得近乎完美，乳晕呈诱人的淡紫粉色，乳头小巧敏感，每一寸曲线都带着魔力般的和谐与极致诱惑。", milkStory: ["【占位符：瑟蕾娜乳房榨奶剧情尚未开发】"] },
+    serena_corpse: { id: "serena_corpse", name: "瑟蕾娜的尸体", type: "misc", usable: true, customAction: true, dismemberable: true, desc: "瑟蕾娜的尸体倒在血泊中，那张极度优雅的脸庞上还残留着一丝错愕。淡紫色长发失去了往日的光泽，深紫色长袍下的身躯已经冰冷。可以拾取后在背包中搜刮或肢解。", corpseStory: ["【占位符：瑟蕾娜尸体互动剧情尚未开发】"] },
+    serena_milk: { id: "serena_milk", name: "瑟蕾娜的奶", type: "consumable", desc: "从瑟蕾娜乳房中挤出的乳汁，泛着淡淡的紫色荧光，蕴含着微弱的魔力。饮用后可恢复大量生命值。", effect: "heal", value: 30 }
+});

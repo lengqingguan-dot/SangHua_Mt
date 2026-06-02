@@ -20,6 +20,33 @@ let currentBattleEnemies = {};
 // 技能数据已提取至 game/skills.js，此处保留公开声明
 // skills 对象由 game/skills.js 定义
 
+// 渲染技能按钮HTML（供战斗各阶段复用）
+function renderSkillButtons() {
+    const currentSp = gameState.player.sp || 0;
+    const maxSp = gameState.player.maxSp || 0;
+    let html = '<h3>技能</h3>';
+    if (gameState.player.skills && gameState.player.skills.length > 0) {
+        html += '<div class="skill-buttons">';
+        gameState.player.skills.forEach(sId => {
+            const s = skills[sId];
+            if (s) {
+                const disabled = currentSp < s.cost ? 'disabled' : '';
+                html += `
+                    <button class="skill-button ${disabled}" onclick="useSkill('${sId}')" ${disabled}>
+                        <span class="skill-name">${s.name}</span>
+                        <span class="skill-cost">SP: ${s.cost} (${currentSp}/${maxSp})</span>
+                        <span class="skill-desc">${s.description}</span>
+                    </button>
+                `;
+            }
+        });
+        html += '</div>';
+    } else {
+        html += '<p>暂无技能</p>';
+    }
+    return html;
+}
+
 // 3. 战斗函数
 function useSkill(skillId) {
     if (!battleState.inBattle) {
@@ -47,29 +74,7 @@ function useSkill(skillId) {
     
     // 重新显示技能按钮，更新技力显示
     if (UI.elements.detailPanel) {
-        let skillsHtml = '<h3>技能</h3>';
-        if (gameState.player.skills && gameState.player.skills.length > 0) {
-            skillsHtml += '<div class="skill-buttons">';
-            gameState.player.skills.forEach(sId => {
-                const s = skills[sId];
-                if (s) {
-                    const skillCurrentSp = gameState.player.sp || 0;
-                    const skillMaxSp = gameState.player.maxSp || 0;
-                    const disabled = skillCurrentSp < s.cost ? 'disabled' : '';
-                    skillsHtml += `
-                        <button class="skill-button ${disabled}" onclick="useSkill('${sId}')" ${disabled}>
-                            <span class="skill-name">${s.name}</span>
-                            <span class="skill-cost">SP: ${s.cost} (${skillCurrentSp}/${skillMaxSp})</span>
-                            <span class="skill-desc">${s.description}</span>
-                        </button>
-                    `;
-                }
-            });
-            skillsHtml += '</div>';
-        } else {
-            skillsHtml += '<p>暂无技能</p>';
-        }
-        UI.setDetail(skillsHtml);
+        UI.setDetail(renderSkillButtons());
     }
     
     // 显示当前玩家状态
@@ -127,26 +132,7 @@ function startMultiBattle(npcIds) {
     
     // 显示技能按钮
     if (UI.elements.detailPanel) {
-        let skillsHtml = '<h3>技能</h3>';
-        if (gameState.player.skills && gameState.player.skills.length > 0) {
-            skillsHtml += '<div class="skill-buttons">';
-            gameState.player.skills.forEach(skillId => {
-                const skill = skills[skillId];
-                if (skill) {
-                    skillsHtml += `
-                        <button class="skill-button" onclick="useSkill('${skillId}')">
-                            <span class="skill-name">${skill.name}</span>
-                            <span class="skill-cost">SP: ${skill.cost}</span>
-                            <span class="skill-desc">${skill.description}</span>
-                        </button>
-                    `;
-                }
-            });
-            skillsHtml += '</div>';
-        } else {
-            skillsHtml += '<p>暂无技能</p>';
-        }
-        UI.setDetail(skillsHtml);
+        UI.setDetail(renderSkillButtons());
     }
     
     // 初始化战斗状态
@@ -226,29 +212,7 @@ function startNewRound() {
     print("");
     
     if (UI.elements.detailPanel) {
-        let skillsHtml = '<h3>技能</h3>';
-        if (gameState.player.skills && gameState.player.skills.length > 0) {
-            skillsHtml += '<div class="skill-buttons">';
-            gameState.player.skills.forEach(skillId => {
-                const skill = skills[skillId];
-                if (skill) {
-                    const skillCurrentSp = gameState.player.sp || 0;
-                    const skillMaxSp = gameState.player.maxSp || 0;
-                    const disabled = skillCurrentSp < skill.cost ? 'disabled' : '';
-                    skillsHtml += `
-                        <button class="skill-button ${disabled}" onclick="useSkill('${skillId}')" ${disabled}>
-                            <span class="skill-name">${skill.name}</span>
-                            <span class="skill-cost">SP: ${skill.cost} (${skillCurrentSp}/${skillMaxSp})</span>
-                            <span class="skill-desc">${skill.description}</span>
-                        </button>
-                    `;
-                }
-            });
-            skillsHtml += '</div>';
-        } else {
-            skillsHtml += '<p>暂无技能</p>';
-        }
-        UI.setDetail(skillsHtml);
+        UI.setDetail(renderSkillButtons());
     }
     
     setTimeout(() => {
@@ -329,29 +293,7 @@ function executePlayerTurn() {
     print("");
     
     if (UI.elements.detailPanel) {
-        let skillsHtml = '<h3>技能</h3>';
-        if (gameState.player.skills && gameState.player.skills.length > 0) {
-            skillsHtml += '<div class="skill-buttons">';
-            gameState.player.skills.forEach(skillId => {
-                const skill = skills[skillId];
-                if (skill) {
-                    const skillCurrentSp = gameState.player.sp || 0;
-                    const skillMaxSp = gameState.player.maxSp || 0;
-                    const disabled = skillCurrentSp < skill.cost ? 'disabled' : '';
-                    skillsHtml += `
-                        <button class="skill-button ${disabled}" onclick="useSkill('${skillId}')" ${disabled}>
-                            <span class="skill-name">${skill.name}</span>
-                            <span class="skill-cost">SP: ${skill.cost} (${skillCurrentSp}/${skillMaxSp})</span>
-                            <span class="skill-desc">${skill.description}</span>
-                        </button>
-                    `;
-                }
-            });
-            skillsHtml += '</div>';
-        } else {
-            skillsHtml += '<p>暂无技能</p>';
-        }
-        UI.setDetail(skillsHtml);
+        UI.setDetail(renderSkillButtons());
     }
     
     setTimeout(() => {

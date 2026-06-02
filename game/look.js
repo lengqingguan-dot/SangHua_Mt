@@ -122,14 +122,7 @@ function updateSceneInfo() {
             const item = getItemInfoById(itemId);
             if (!item) return;
             const itemName = item.name;
-            const isUnpickupable = item.notPickable || itemId.includes('ladder') || itemId === 'dynamite' || 
-                itemId === 'heavy_wooden_door' || itemId.includes('medium_wooden_door') ||
-                itemId.includes('spiral_stairs') || itemId.includes('stairs_to_') ||
-                itemId === 'stove' || itemId === 'milker' || itemId === 'workbench' ||
-                itemId === 'mansion_gate_door' || itemId === 'wooden_hut' || itemId === 'hut_door' ||
-                itemId === 'side_gate_door' || itemId.includes('randolph_statue') ||
-                itemId === 'stone_wall' || itemId === 'wardrobe' || itemId.includes('mine_pit') ||
-                itemId.includes('teleport_circle') || itemId === 'tunnel_entrance' || itemId === 'leaf_pile';
+            const isUnpickupable = isItemUnpickable(itemId);
 
             if (!isUnpickupable) pickupableNames.add(itemName);
 
