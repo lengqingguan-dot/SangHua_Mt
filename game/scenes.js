@@ -26,6 +26,40 @@ function breakLock(lockId) {
     if (maxDamage >= 20) { print(`<span style="color:#ff6666;">咔嚓！铁锁被砸开了！</span>`); const idx = room.items.indexOf(lockId); if (idx > -1) { room.items.splice(idx, 1); const brokenId = `broken_lock_${Date.now()}`; const broken = createItemFromTemplate('broken_lock'); if (broken) { broken.id = brokenId; ITEM_TEMPLATES[brokenId] = broken; room.items.push(brokenId); } } const pitId = `mine_pit_${Date.now()}`; ITEM_TEMPLATES[pitId] = { id: pitId, name: "矿坑", type: "misc", desc: "一个黑漆漆的矿坑...", usable: true, customAction: true, notPickable: true }; room.items.push(pitId); UI.setOverlay(true); let si = 0; const storyLines = ["你侧耳倾听...", "矿道深处传来细细簌簌的响动...", "四周陷入死一般的寂静...", "被破开的铁锁旁，黑漆漆的矿坑暴露在月光下..."]; function showSL() { if (si < storyLines.length) { print(`<span class="story-text">${storyLines[si]}</span>`); si++; setTimeout(showSL, 1300); } else { UI.setOverlay(false); updateSceneInfo(); } } showSL(); } else { print(`<span style="color:#888;">你的攻击只留下痕迹...</span>`); print(`<span style="color:#ffaaaa;">需要20点伤害</span>`); }
 }
 
+function enterMinePit(pitId) {
+    const room = gameState.world[gameState.player.location];
+    if (!room || !room.items || !room.items.includes(pitId)) { print("矿坑已不存在。"); return; }
+
+    clearDetailPanel(); currentPanel = null;
+    print("");
+    print(`<span style="color: #ff8844;">你深吸一口气，纵身跳入黑漆漆的矿坑...</span>`);
+    print(`<span style="color: #888;">耳边风声呼啸，黑暗吞噬了一切。</span>`);
+
+    // 坠落伤害
+    gameState.player.hp = Math.max(0, gameState.player.hp - 20);
+    print(`<span style="color: #ff6666;">砰！你重重地摔在矿道地面上，浑身剧痛不已。</span>`);
+    print(`<span style="color: #ff6666;">你受到了20点坠落伤害！</span>`);
+    print(`<span style="color: #aaffaa;">当前 HP: ${gameState.player.hp}/${gameState.player.maxHp}</span>`);
+    print("");
+
+    if (gameState.player.hp <= 0) {
+        print(`<span style="color: #ff6666;">坠落的重创夺去了你最后的力气...</span>`);
+        print(`<span style="color: #aaa;">（游戏将重新开始...）</span>`);
+        setTimeout(() => location.reload(), 2000);
+        return;
+    }
+
+    // 移除矿坑物品（已跳下）
+    const idx = room.items.indexOf(pitId);
+    if (idx > -1) { room.items.splice(idx, 1); delete ITEM_TEMPLATES[pitId]; }
+
+    gameState.player.location = 'tunnel_exit_4';
+    look();
+    updateMinimap();
+    updateSceneInfo();
+    StoryEngine.check();
+}
+
 function mineStoneWall(wallId) {
     const room = gameState.world[gameState.player.location];
     if (!room || !room.items || !room.items.includes(wallId)) { print("石壁已不存在。"); return; }

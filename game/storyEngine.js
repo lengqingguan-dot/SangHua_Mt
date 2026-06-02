@@ -211,12 +211,12 @@ const StoryEngine = {
                     setTimeout(showNextLine, 1300);
                 } else {
                     UI.setOverlay(false);
-                    print(`<span style="color: #ffaa66;">【新任务】${story.name}</span>`);
+                    print(`<span style="color: #ffaa66; font-size: 1.3em; font-weight: bold;">【新任务】${story.name}</span>`);
                 }
             };
             showNextLine();
         } else {
-            print(`<span style="color: #ffaa66;">【新任务】${story.name}</span>`);
+            print(`<span style="color: #ffaa66; font-size: 1.3em; font-weight: bold;">【新任务】${story.name}</span>`);
         }
     },
 
@@ -281,6 +281,9 @@ const StoryEngine = {
             case 'first_talk':
                 // 需要外部标记
                 return false;
+            case 'quest_talk':
+                // 由 talkToNPCQuest 处理
+                return false;
             case 'interact_with':
                 // 需要外部标记
                 return false;
@@ -295,7 +298,7 @@ const StoryEngine = {
         if (idx > -1) this.activeQuests.splice(idx, 1);
         this.completedQuests.push(questId);
 
-        print(`<span style="color: #66ff66;">✅ 任务完成：${story.name}</span>`);
+        print(`<span style="color: #66ff66; font-size: 1.3em; font-weight: bold;">✅ 任务完成：${story.name}</span>`);
 
         // 发放奖励
         if (story.rewards) {
@@ -352,25 +355,74 @@ const StoryEngine = {
         this.loaded = true;
     },
 
-    // ==================== 辅助函数 ====================
+    // ==================== 任务NPC对话 ====================
 
-    _hasItemEquipped(itemId) {
-        const eq = gameState.player.equipment;
-        return (eq.weapon && eq.weapon.id === itemId)
-            || (eq.armor && eq.armor.id === itemId)
-            || (eq.accessory && eq.accessory.id === itemId);
+    /** 获取某个NPC关联的进行中任务 */
+    getActiveQuestsForNpc(npcId) {
+        const results = [];
+        for (const questId of this.activeQuests) {
+            const story = this.registry.get(questId);
+            if (story && story.questNpc === npcId && story.questDialogue) {
+                results.push({ id: questId, story: story });
+            }
+        }
+        return results;
     },
 
-    _isNpcAliveInRoom(roomId, npcId) {
-        const room = gameState.world[roomId];
-        return room && room.npcs && room.npcs.includes(npcId);
+    /** 查找与NPC关联的第一个进行中任务（用于UI按钮判定） */
+    findActiveQuestForNpc(npcId) {
+        const quests = this.getActiveQuestsForNpc(npcId);
+        return quests.length > 0 ? quests[0].story : null;
     },
 
+    /** 播放任务NPC对话并标记完成 */
+    playQuestDialogue(questId) {
+        const story = this.registry.get(questId);
+        if (!story || !story.questDialogue) return false;
+
+        UI.setOverlay(true);
+        let lineIndex = 0;
+        const showNextLine = () => {
+            if (lineIndex < story.questDialogue.length) {
+                print(`<span style="color: #ff8844;">${story.questDialogue[lineIndex]}</span>`);
+                lineIndex++;
+                setTimeout(showNextLine, 1300);
+            } else {
+                UI.setOverlay(false);
+                this.markConditionProgress('quest_talk', story.questNpc);
+            }
+        };
+        showNextLine();
+        return true;
+    },
+
+    // ==================== 内部辅助方法 ====================
+
+    /** 检查NPC是否在任意房间存活 */
     _isNpcAliveAnywhere(npcId) {
+        if (!gameState.world) return false;
         for (const roomId in gameState.world) {
             const room = gameState.world[roomId];
-            if (room && room.npcs && room.npcs.includes(npcId)) return true;
+            if (room.npcs && room.npcs.includes(npcId)) return true;
+        }
+        return false;
+    },
+
+    /** 检查NPC是否在指定房间存活 */
+    _isNpcAliveInRoom(roomId, npcId) {
+        const room = gameState.world && gameState.world[roomId];
+        if (!room || !room.npcs) return false;
+        return room.npcs.includes(npcId);
+    },
+
+    /** 检查指定物品是否已装备 */
+    _hasItemEquipped(itemId) {
+        if (!gameState.player || !gameState.player.equipment) return false;
+        const eq = gameState.player.equipment;
+        for (const slot in eq) {
+            if (eq[slot] && eq[slot].id === itemId) return true;
         }
         return false;
     }
+
 };

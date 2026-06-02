@@ -170,6 +170,17 @@ const ITEM_TEMPLATES = {
     },
 
     // ========== 饰品 ==========
+    magic_mirror: {
+        id: "magic_mirror",
+        name: "魔镜",
+        type: "accessory",
+        desc: "一面古朴的银色魔镜，镜框上刻着复杂的魔法符文。镜面泛着淡淡的蓝光，仿佛连接着某个遥远的地方。点击传送可以瞬间移动到曾经到过的地点。",
+        usable: true,
+        customAction: true,
+        slot: "accessory",
+        atk: 0,
+        def: 1
+    },
     blood_gem: {
         id: "blood_gem",
         name: "血色宝石",

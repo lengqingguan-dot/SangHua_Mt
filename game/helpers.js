@@ -124,6 +124,62 @@ function checkLevelUp() {
     print(`<span style="color: #888;">当前经验: ${player.exp}/${player.maxExp}</span>`);
 }
 
+// 魔镜传送功能
+const MIRROR_TELEPORT_DESTINATIONS = [
+    { id: 'mine_gate', name: '矿场大门', roomName: '矿场大门' }
+];
+
+function useMagicMirror() {
+    const mirror = findItemById('magic_mirror');
+    if (!mirror) {
+        // 检查装备栏
+        if (gameState.player.equipment.accessory && gameState.player.equipment.accessory.id === 'magic_mirror') {
+            // 允许从装备栏使用
+        } else {
+            print(`<span style="color: #ffaaaa;">你没有魔镜！</span>`);
+            return;
+        }
+    }
+
+    clearDetailPanel();
+    currentPanel = null;
+
+    let html = makeTitle('🌀 魔镜传送');
+    html += `<div style="color: #888; margin-bottom: 8px;">选择要传送的目的地：</div>\n`;
+
+    MIRROR_TELEPORT_DESTINATIONS.forEach(dest => {
+        const room = gameState.world[dest.id];
+        const roomName = room ? room.name : dest.roomName;
+        html += `<div style="margin: 4px 0;"><span style="color: #6688ff; text-decoration: underline; cursor: pointer;" onclick="teleportViaMirror('${dest.id}')">📍 ${roomName}</span></div>\n`;
+    });
+
+    html += centerLine();
+    html += `<div><span style="color: #aaa; cursor: pointer;" onclick="clearDetailPanel()">↩️ 关闭</span></div>`;
+
+    UI.setDetail(html);
+    currentPanel = 'mirror_teleport';
+}
+
+function teleportViaMirror(roomId) {
+    const room = gameState.world[roomId];
+    if (!room) {
+        print(`<span style="color: #ffaaaa;">传送失败：目的地不存在。</span>`);
+        return;
+    }
+
+    gameState.player.location = roomId;
+    clearDetailPanel();
+    currentPanel = null;
+    clearOutput();
+    print(`<span style="color: #6688ff;">🌀 魔镜发出耀眼的蓝光，你感到一阵眩晕...</span>`);
+    print(`<span style="color: #aaffaa;">你被传送到了「${room.name}」。</span>`);
+    print("");
+    look();
+    updateMinimap();
+    updateSceneInfo();
+    StoryEngine.check();
+}
+
 // 查看状态
 function showStatus() {
     const p = gameState.player;

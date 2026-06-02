@@ -72,6 +72,9 @@ function examineItemFromPanel(itemId) {
         if (item.corpseStory) html += `<div><span style="color:#ff66aa;text-decoration:underline;cursor:pointer;" onclick="useCorpse('${item.id}')">🔞 互动</span></div>`;
         if (item.loot && item.loot.length > 0) html += `<div><span style="color:#ffdd44;text-decoration:underline;cursor:pointer;" onclick="lootCorpseFromInventory('${item.id}')">✨ 搜刮</span></div>`;
         if (item.dismemberable) html += `<div><span style="color:#ff6b6b;text-decoration:underline;cursor:pointer;" onclick="dismemberCorpseFromInventory('${item.id}')">🔪 肢解</span></div>`;
+    } else if (item.id === 'magic_mirror') {
+        html += `<div><span style="color:#6688ff;text-decoration:underline;cursor:pointer;" onclick="useMagicMirror()">🌀 传送</span></div>`;
+        html += `<div><span style="color:#aaffaa;text-decoration:underline;cursor:pointer;" onclick="equipItemFromDetail('${item.id}')">⚔️ 装备</span></div>`;
     } else if (item.type === 'weapon' || item.type === 'armor' || item.type === 'accessory') {
         html += `<div><span style="color:#aaffaa;text-decoration:underline;cursor:pointer;" onclick="equipItemFromDetail('${item.id}')">⚔️ 装备</span></div>`;
     } else if (item.type === 'consumable') {
@@ -302,18 +305,23 @@ function showQuestDetail(questId, tab) {
         story = { name: q.name, description: q.description, type: 'main' };
     }
 
+    const isCompleted = (typeof StoryEngine !== 'undefined') && StoryEngine.completedQuests.includes(questId);
+
     let html = makeTitle(story.name);
     html += `类型：${story.type === 'main' ? '主线任务' : '支线任务'}\n`;
     html += `描述：${story.description || '(无)'}\n`;
     html += centerLine();
 
-    if (story.startStory && story.startStory.length > 0) {
-        html += `<div><span style="color:#ffaa66;text-decoration:underline;cursor:pointer;" onclick="replayStory('${questId}','start')">🎬 播放触发剧情</span></div>`;
-        html += centerLine();
-    }
-    if (story.completeStory && story.completeStory.length > 0) {
-        html += `<div><span style="color:#66ff66;text-decoration:underline;cursor:pointer;" onclick="replayStory('${questId}','complete')">🎬 播放完成剧情</span></div>`;
-        html += centerLine();
+    // 仅已完成的任务显示重播按钮
+    if (isCompleted) {
+        if (story.startStory && story.startStory.length > 0) {
+            html += `<div><span style="color:#ffaa66;text-decoration:underline;cursor:pointer;" onclick="replayStory('${questId}','start')">🎬 播放触发剧情</span></div>`;
+            html += centerLine();
+        }
+        if (story.completeStory && story.completeStory.length > 0) {
+            html += `<div><span style="color:#66ff66;text-decoration:underline;cursor:pointer;" onclick="replayStory('${questId}','complete')">🎬 播放完成剧情</span></div>`;
+            html += centerLine();
+        }
     }
     if (story.conditions) {
         html += `<div style="color:#888;font-weight:bold;">完成条件：</div>`;

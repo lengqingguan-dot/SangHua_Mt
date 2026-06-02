@@ -129,6 +129,15 @@ const GROUND_ITEM_ACTIONS = [
         earlyReturn: true
     },
 
+    // --- 矿坑（破开四号矿井口铁锁后出现）---
+    {
+        match(itemId, item) { return itemId.includes('mine_pit'); },
+        actions(itemId, item, html) {
+            html.push(`<div><span style="color: #ff8844; text-decoration: underline; cursor: pointer;" onclick="enterMinePit('${itemId}')">🕳️ 跳下矿坑</span></div>`);
+        },
+        earlyReturn: true
+    },
+
     // --- 石壁 ---
     {
         match(itemId, item) { return itemId === 'stone_wall'; },
@@ -259,7 +268,6 @@ function breakDoor(doorId, doorType) {
             if (broken) { broken.id = brokenId; ITEM_TEMPLATES[brokenId] = broken; room.items.push(brokenId); }
         }
         print(`<span style="color: #aaffaa;">你成功破坏了房门！</span>`);
-        updateSceneInfo(); updateMinimap();
 
         if (doorType === 'heavy') {
             room.exits.west = 'corridor_center';
@@ -270,6 +278,11 @@ function breakDoor(doorId, doorType) {
         if (doorType === 'medium') {
             handleMediumDoorUnlock(room);
         }
+
+        // ★ 设置新出口后再刷新
+        updateSceneInfo(); updateMinimap();
+        print("");
+        look();
     } else {
         print(`<span style="color: #888;">你的攻击只留下一道凹痕...</span>`);
         print(`<span style="color: #ffaaaa;">（需要${requiredDamage}点伤害）</span>`);
@@ -301,9 +314,9 @@ function rebuildStatue(baseId) {
     const room = gameState.world[gameState.player.location];
     if (!room || !room.items || !room.items.includes(baseId)) { print("底座已不存在。"); return; }
 
-    // 检查支线任务5的完成条件
-    const quest = (typeof StoryEngine !== 'undefined') ? StoryEngine.registry.get('quest_statue_rebuild') : null;
-    if (!quest) { print(`<span style="color:#888;">你看着底座，不知从何下手...</span>`); return; }
+    // 检查支线任务5-2是否已激活
+    const questActive = (typeof StoryEngine !== 'undefined') && StoryEngine.activeQuests.includes('quest_statue_rebuild_5_2');
+    if (!questActive) { print(`<span style="color:#888;">你看着底座，不知从何下手...</span>`); return; }
 
     const requiredItems = [
         { id: 'cecilia_head_broken', name: '被玩坏的塞西莉亚的头颅', count: 1 },
@@ -366,15 +379,13 @@ function rebuildStatue(baseId) {
             li++; setTimeout(showNext, 1300);
         } else {
             UI.setOverlay(false);
-            // 给予奖励
-            const obey = createItemFromTemplate('statue_obedient');
-            if (obey) {
-                gameState.player.inventory.push(obey);
-                print(`<span style="color:#ffdd44;">✨ 获得了「${obey.name}」！</span>`);
-            }
-            // 标记任务完成
+            // 完成支线任务5-2（由引擎统一处理：任务状态迁移、奖励发放、完成剧情播放）
             if (typeof StoryEngine !== 'undefined') {
-                StoryEngine.markConditionProgress('interact_with', 'randolph_statue_fallen');
+                const qId = 'quest_statue_rebuild_5_2';
+                const qStory = StoryEngine.registry.get(qId);
+                if (qStory && StoryEngine.activeQuests.includes(qId)) {
+                    StoryEngine.completeQuest(qId, qStory);
+                }
             }
             // 移除底座
             const idx = room.items.indexOf(baseId);

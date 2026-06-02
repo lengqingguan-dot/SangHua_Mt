@@ -21,6 +21,13 @@ function showNPCInfo(npcId) {
         const genderText = npc.gender === 'female' ? '她' : '他';
         html += `<div><span style="color: #aaffaa; text-decoration: underline; cursor: pointer;" onclick="talkToNPCAction('${npcId}')">💬 与${genderText}交谈</span></div>`;
     }
+    // 检查是否有进行中的任务需要与此NPC对话
+    if (typeof StoryEngine !== 'undefined') {
+        const activeQuest = StoryEngine.findActiveQuestForNpc(npcId);
+        if (activeQuest && activeQuest.questDialogue) {
+            html += `<div><span style="color: #ffaa66; text-decoration: underline; cursor: pointer;" onclick="talkToNPCQuest('${npcId}')">📋 任务对话</span></div>`;
+        }
+    }
     if (npc.canFight) {
         html += `<div><span style="color: #ffaaaa; text-decoration: underline; cursor: pointer;" onclick="attackNPC('${npcId}')">⚔️ 攻击</span></div>`;
     }
@@ -70,6 +77,35 @@ function talkToNPCAction(npcId) {
         } else {
             hideNextBtn();
             UI.setOverlay(false);
+            StoryEngine.check();
+        }
+    }
+    showNext();
+}
+
+// 与NPC进行任务对话（播放questDialogue后完成quest_talk条件）
+function talkToNPCQuest(npcId) {
+    const activeQuest = StoryEngine.findActiveQuestForNpc(npcId);
+    if (!activeQuest || !activeQuest.questDialogue) {
+        print(`<span style="color: #888;">没有可用的任务对话。</span>`);
+        return;
+    }
+
+    clearDetailPanel(); currentPanel = null;
+    UI.setOverlay(true);
+
+    let lineIndex = 0;
+    function showNext() {
+        if (lineIndex < activeQuest.questDialogue.length) {
+            print("<br>");
+            print(`<span style="color: #ffaa66;">${activeQuest.questDialogue[lineIndex]}</span>`);
+            lineIndex++;
+            showNextBtn(showNext);
+        } else {
+            hideNextBtn();
+            UI.setOverlay(false);
+            // ★ 标记任务对话完成，完成该任务
+            StoryEngine.markConditionProgress('quest_talk', npcId);
             StoryEngine.check();
         }
     }
@@ -156,7 +192,14 @@ function slaughterNPC(npcId) {
         const drops = ['warhorse_penis', 'warhorse_meat', 'warhorse_head'];
         drops.forEach(dropId => {
             const item = createItemFromTemplate(dropId);
-            if (item) { ITEM_TEMPLATES[item.id] = item; room.items.push(item.id); print(`<span style="color: #aaffaa;">${item.name}掉落在了地上。</span>`); }
+            if (item) { 
+                const uniqueId = `${dropId}_${Date.now()}`;
+                item.id = uniqueId;
+                ITEM_TEMPLATES[uniqueId] = item;
+                if (!room.items) room.items = [];
+                room.items.push(uniqueId); 
+                print(`<span style="color: #aaffaa;">${item.name}掉落在了地上。</span>`); 
+            }
         });
         room.desc = "一间用粗木搭建的马厩...最里面的隔栏中残留着大片血迹，一匹战马曾在这里被屠宰。";
     }

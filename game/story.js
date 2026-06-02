@@ -166,30 +166,43 @@ const STORIES = {
 
     // ==================== 支线任务 ====================
 
-    // 支线1 - 血红色的眼睛
-    quest_blood_eyes: {
-        id: 'quest_blood_eyes',
+    // 支线1-1 - 血红色的眼睛（触发+与疲惫的矿工对话）
+    quest_blood_eyes_1: {
+        id: 'quest_blood_eyes_1',
         type: 'side',
-        name: '支线任务：血红色的眼睛',
-        trigger: { type: 'first_talk', npc: 'tired_miner' },
+        name: '支线任务：血红色的眼睛1',
+        trigger: { type: 'enter_room', room: 'mine_tunnel' },
+        conditions: {
+            type: 'single',
+            condType: 'quest_talk',
+            condValue: 'tired_miner',
+            label: '与疲惫的矿工聊聊'
+        },
+        questNpc: 'tired_miner',
+        questDialogue: [
+            "「四号矿井是怎么了？今天都封锁了，工友也一个都没看见。」",
+            "「孩子，你能帮我去四号矿井看看吗，我有位朋友在那。」",
+            "「他脸上有一道很长的疤，瘦高个。」",
+            "「如果找到他，回来和我说一声，行吗？」",
+        ],
+        description: '与矿道中的疲惫矿工聊一聊。',
+        rewards: { exp: 10 }
+    },
+
+    // 支线1-2 - 了解四号矿坑的现状
+    quest_blood_eyes_2: {
+        id: 'quest_blood_eyes_2',
+        type: 'side',
+        name: '支线任务：血红色的眼睛2',
+        trigger: { type: 'quest_complete', quest: 'quest_blood_eyes_1' },
         conditions: {
             type: 'single',
             condType: 'read_item',
             condValue: 'miner_note',
             label: '阅读"染血的字条"'
         },
-        startStory: [
-            "疲惫的矿工拜托你：「孩子，你能帮我去四号矿井看看吗，我有位朋友在那。」",
-            "「他脸上有一道很长的疤，瘦高个。」",
-            "「如果找到他，回来和我说一声，行吗？」"
-        ],
-        completeStory: [
-            "你讲述了在北侧矿道发现的一切...",
-            "矿工沉默了很久，最终只是点了点头。",
-            "「谢谢...至少我知道了...」"
-        ],
-        description: '去四号矿井看看，找到脸上带疤的工友。',
-        rewards: { exp: 30, item: 'bread' }
+        description: '去四号矿井看看，找到脸上带疤的工友，了解四号矿井的情况。',
+        rewards: { exp: 20, item: 'bread' }
     },
 
     // 支线2 - 清洗
@@ -236,23 +249,59 @@ const STORIES = {
             condValue: 'serena',
             label: '首次与瑟蕾娜·紫雾对话'
         },
-        description: '木屋中的神秘法师...',
+        description: '木屋中的神秘法师似乎对你很感兴趣，和她聊聊吧。',
         rewards: { item: 'magic_gem' }  // 魔镜（占位符，后续替换）
     },
 
-    // 支线5 - 兰德尔家族雕像重建工作
-    quest_statue_rebuild: {
-        id: 'quest_statue_rebuild',
+    // 支线5-1 - 兰德尔家族雕像重建工作（触发+与索菲对话）
+    quest_statue_rebuild_5_1: {
+        id: 'quest_statue_rebuild_5_1',
         type: 'side',
-        name: '支线任务：兰德尔家族雕像重建工作',
+        name: '支线任务：兰德尔家族雕像重建工作1',
         trigger: {
             type: 'composite_trigger',
             operator: 'all',
             triggers: [
-                { type: 'flag', flag: 'statue_pushed' },  // 推倒了雕像
-                { type: 'npc_not_defeated', npc: 'sophie' }  // 索菲未死亡
+                { type: 'flag', flag: 'statue_pushed' },       // 推倒了雕像
+                { type: 'npc_not_defeated', npc: 'sophie' }    // 索菲未死亡
             ]
         },
+        conditions: {
+            type: 'single',
+            condType: 'quest_talk',
+            condValue: 'sophie',
+            label: '与索菲谈论倒塌的雕像'
+        },
+        questNpc: 'sophie',
+        questDialogue: [
+            "你推开女仆卧室破旧的木门，索菲正跪在地上，用冻得通红的手指搓洗着一件沾满煤灰的矿工服。她瘦弱的身体在昏暗的烛光下微微发抖，亚麻色的长发遮住了半边苍白的小脸。",
+            "听见门响，她慌忙抬起头，那双因营养不良而显得格外大的浅灰色眼睛里闪过一丝明显的害怕。她赶紧跪得更低，双手紧紧抓着抹布，声音带着恭敬和紧张：",
+            "「先……先生……房间还没擦干净，我马上就擦完……求您别生气……」",
+            "你挥了挥手，示意自己不是来责骂她的。索菲这才小心翼翼地抬起头，看了你一眼，又迅速低下头，身体却依然在轻轻颤抖。",
+            "你告诉了她兰德尔一世雕像倒塌的事。",
+            "索菲的身体猛地一僵。她缓缓抬起头，浅灰色的眼睛里满是震惊和难以置信，声音细若蚊鸣：",
+            "「……倒……倒了？那座……那座雕像……？」",
+            "她的双手不再抓着抹布，而是紧紧攥着破旧的女仆裙摆，指关节因为用力而发白。她低头沉默了片刻，声音轻轻颤抖着：",
+            "「我能为您做些什么呢，先生……」",
+            "你思索片刻，告诉了她你的想法。",
+            "索菲的瞳孔因为惊恐而睁大，身体不由自主地向后退了一步，但是她最终还是低下了头，眼泪滑下脸颊。",
+            "「我会照做的，先生……」"
+        ],
+        description: '与女仆索菲谈谈倒塌的雕像。',
+        rewards: { exp: 20 },
+        startStory: [
+            "兰德尔一世的青铜雕像轰然倒塌，激起一片尘土与碎屑。",
+            "你想起那个总是低声下气、跪在冰冷地板上擦洗的女仆索菲。",
+            "也许该去女仆房间找她谈谈这座被你推倒的雕像。"
+        ]
+    },
+
+    // 支线5-2 - 收集材料重建雕像
+    quest_statue_rebuild_5_2: {
+        id: 'quest_statue_rebuild_5_2',
+        type: 'side',
+        name: '支线任务：兰德尔家族雕像重建工作2',
+        trigger: { type: 'quest_complete', quest: 'quest_statue_rebuild_5_1' },
         conditions: {
             type: 'composite', operator: 'all',
             subConditions: [
@@ -266,11 +315,27 @@ const STORIES = {
                 { type: 'has_item_count', item: 'elena_foot', count: 2, label: '艾莲娜的脚×2' },
                 { type: 'has_item_count', item: 'isabella_arm', count: 2, label: '伊莎贝拉的手臂×2' },
                 { type: 'has_item_count', item: 'isabella_hand', count: 2, label: '伊莎贝拉的手×2' },
-                { type: 'has_item', item: 'knight_greatsword', label: '骑士大剑' },
                 { type: 'interact_with', item: 'randolph_statue_fallen', label: '与雕像底座交互' }
             ]
         },
+        completeStory: [
+            "你看着地上分门别类摆放好的部件。伊莎贝拉柔软的乳房，艾莲娜冷玉般的双腿，还有托盘里塞西莉亚沾满精液的头颅。索菲站在一边，双手垂在身侧，等待你的命令。",
+            "「开始吧。」你说。",
+            "索菲没有说话，只是点了点头，抱起艾莲娜那双修长笔直的腿。她先拿银针和坚韧的金丝线开始将艾莲娜的脚踝缝合到小腿的断面上。",
+            "索菲为缝合好的、艾莲娜的双腿套上黑丝，拿起伊莎贝拉那双黑色的细高跟鞋，费了些力气，才将艾莲娜那双冰冷僵硬的脚塞进去，从没穿过如此高度的高跟鞋的断脚，脚面拱起一个夸张的弧度。",
+            "接着，她调整好位置，让躯干大腿根部的断面与之精准对齐。男爵夫人象牙般温润的臀部与艾莲娜冷玉般的大腿连接在一起，色差清晰可见。",
+            "索菲搬过伊莎贝拉的头颅，将其与躯干的颈部断面仔细对齐。她换了更细的针线，从颈后入针，沿着皮肤的边缘细细缝合。针脚藏在浓密的金发下，几乎看不出痕迹。",
+            "然后，索菲将伊莎贝拉那两条匀称的手臂对上躯干的肩部切口，用同样的方式进行缝合，整个上半身逐渐完整。",
+            "你拿起伊莎贝拉那对柔软硕大的乳房，乳房如同水一般在你手中摊开。你递给索菲，让她将乳房重新缝上。",
+            "索菲用几根长钢针穿过伊莎贝拉的手腕和托盘底部，缝上手的同时将两者牢牢钉在一起。然后，她调整手指的姿势，让它们看起来像是自然地托着盘子。",
+            "你拿起塞西莉亚那颗沾满干涸精液的头颅，亲自将它摆在托盘正中央。塞西莉亚的头颅眼神空洞，失去舌头的小嘴已经被撕裂得不成样子。你取来那双还穿着白色厚丝袜和黑色小皮鞋的脚，对称地摆在头颅两侧。",
+            "你也没有忘记那条被你割下的舌头，柔软的舌头被你摆放在头颅的正前方。这颗头颅将永远惊恐地看着自己被割下的舌头。从今往后从这个小嘴中进出的只能是粗大的阴茎。",
+            "你欣赏着跪地的雕塑，上半身属于伊莎贝拉，下半身属于艾莲娜。那双高洁的双腿正穿着淫荡的黑丝与黑色高跟，而伊莎贝拉的双手虔诚地托举着一个银盘，似乎正顺从地交出自己朝夕相处的姐妹最宝贵的部位，供你享用。" ,
+            "做完这一切后，索菲站在一旁，抿着嘴低下头，等待着你的发落。",
+            "「很完美。」你说，「这就是我想要的。」",
+            "娇小的女仆没有作声，向你露出了一个不自然的、苍白的微笑，干枯的眼眶似乎又红了起来。"
+        ],
         description: '收集指定肢体部位，在雕像底座重建兰德尔家族的雕像。',
-        rewards: { item: 'statue_obedient' }  // 雕像【顺从】（后续创建）
+        rewards: { item: 'statue_obedient' }
     }
 };
