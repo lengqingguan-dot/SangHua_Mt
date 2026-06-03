@@ -292,44 +292,52 @@ const StoryEngine = {
         }
     },
 
-    completeQuest(questId, story) {
+    completeQuest(questId, story, onAllDone) {
         // 从进行中移到已完成
         const idx = this.activeQuests.indexOf(questId);
         if (idx > -1) this.activeQuests.splice(idx, 1);
         this.completedQuests.push(questId);
 
-        print(`<span style="color: #66ff66; font-size: 1.3em; font-weight: bold;">✅ 任务完成：${story.name}</span>`);
+        const showCompletionAndRewards = () => {
+            print(`<span style="color: #66ff66; font-size: 1.3em; font-weight: bold;">✅ 任务完成：${story.name}</span>`);
 
-        // 发放奖励
-        if (story.rewards) {
-            if (story.rewards.exp) {
-                gameState.player.exp += story.rewards.exp;
-                print(`<span style="color: #ffdd44;">获得 ${story.rewards.exp} 经验值</span>`);
-                checkLevelUp();
-            }
-            if (story.rewards.item) {
-                const item = createItemFromTemplate(story.rewards.item);
-                if (item) {
-                    gameState.player.inventory.push(item);
-                    print(`<span style="color: #aaffaa;">获得 ${item.name}</span>`);
+            // 发放奖励
+            if (story.rewards) {
+                if (story.rewards.exp) {
+                    gameState.player.exp += story.rewards.exp;
+                    print(`<span style="color: #ffdd44;">获得 ${story.rewards.exp} 经验值</span>`);
+                    checkLevelUp();
+                }
+                if (story.rewards.item) {
+                    const item = createItemFromTemplate(story.rewards.item);
+                    if (item) {
+                        gameState.player.inventory.push(item);
+                        print(`<span style="color: #aaffaa;">获得 ${item.name}</span>`);
+                    }
                 }
             }
-        }
 
-        // 播放完成剧情
+            UI.setOverlay(false);
+            if (onAllDone) onAllDone();
+        };
+
+        // 播放完成剧情（在任务完成提示之前）
         if (story.completeStory && story.completeStory.length > 0) {
             UI.setOverlay(true);
             let lineIndex = 0;
             const showNextLine = () => {
                 if (lineIndex < story.completeStory.length) {
-                    print(`<span style="color: #66ff66;">${story.completeStory[lineIndex]}</span>`);
+                    print(`<span style="color: #ffaa66;">${story.completeStory[lineIndex]}</span>`);
                     lineIndex++;
-                    setTimeout(showNextLine, 1300);
+                    showNextBtn(showNextLine);
                 } else {
-                    UI.setOverlay(false);
+                    hideNextBtn();
+                    showCompletionAndRewards();
                 }
             };
             showNextLine();
+        } else {
+            showCompletionAndRewards();
         }
     },
 

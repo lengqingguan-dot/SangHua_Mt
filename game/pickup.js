@@ -16,7 +16,7 @@ function pickupItem(itemId) {
 
     const item = getItemInfoById(itemId);
     if (!item) return;
-    if (item.notPickable) { print(`<span style="color: #ff6666;">这个物品无法拾取。</span>`); return; }
+    if (isItemUnpickable(item)) { print(`<span style="color: #ff6666;">这个物品无法拾取。</span>`); return; }
 
     const index = room.items.indexOf(itemId);
     if (index === -1) { print("该物品已不存在。"); return; }
@@ -90,7 +90,7 @@ function pickupAllSameItems(itemName) {
     if (!room || !room.items) { print("无法拾取。"); return; }
     let count = 0;
     const itemsToPickup = [];
-    room.items.forEach(id => { const item = getItemInfoById(id); if (item && item.name === itemName) itemsToPickup.push(id); });
+    room.items.forEach(id => { const item = getItemInfoById(id); if (item && item.name === itemName && !isItemUnpickable(item)) itemsToPickup.push(id); });
     itemsToPickup.forEach(itemId => {
         const index = room.items.indexOf(itemId);
         if (index !== -1) { const item = getItemInfoById(itemId); if (item) { room.items.splice(index, 1); gameState.player.inventory.push(item); count++; } }

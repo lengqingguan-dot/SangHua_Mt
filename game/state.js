@@ -18,6 +18,7 @@ function getDefaultGameState() {
             level: 1,
             exp: 0,
             maxExp: 10,
+            gold: 0,
             location: "mine_deep",
             inventory: [],
             skills: ['hatred'],

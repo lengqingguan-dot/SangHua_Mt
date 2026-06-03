@@ -1,6 +1,6 @@
 // ============================================================
 //  game/npcSystem.js - NPC交互系统
-//  NPC信息展示、对话、攻击、侵犯、屠宰、榨精
+//  NPC信息展示、对话、攻击、侵犯、屠宰、榨精、买卖
 // ============================================================
 
 function getCharacterInfo(templateId) {
@@ -21,7 +21,6 @@ function showNPCInfo(npcId) {
         const genderText = npc.gender === 'female' ? '她' : '他';
         html += `<div><span style="color: #aaffaa; text-decoration: underline; cursor: pointer;" onclick="talkToNPCAction('${npcId}')">💬 与${genderText}交谈</span></div>`;
     }
-    // 检查是否有进行中的任务需要与此NPC对话
     if (typeof StoryEngine !== 'undefined') {
         const activeQuest = StoryEngine.findActiveQuestForNpc(npcId);
         if (activeQuest && activeQuest.questDialogue) {
@@ -39,6 +38,11 @@ function showNPCInfo(npcId) {
     }
     if (npc.canMilk) {
         html += `<div><span style="color: #ff88cc; text-decoration: underline; cursor: pointer;" onclick="milkNPC('${npcId}')">💦 榨精</span></div>`;
+    }
+    if (npc.merchantType === 'sell') {
+        html += `<div><span style="color: #ffaa00; text-decoration: underline; cursor: pointer;" onclick="showTradePanel()">💰 出售</span></div>`;
+    } else if (npc.merchantType === 'buy') {
+        html += `<div><span style="color: #ffaa00; text-decoration: underline; cursor: pointer;" onclick="showBuyPanel()">🛒 购买</span></div>`;
     }
 
     html += `<div><span style="color: #aaa; cursor: pointer;" onclick="clearDetailPanel()">↩️ 返回</span></div>`;
@@ -83,7 +87,7 @@ function talkToNPCAction(npcId) {
     showNext();
 }
 
-// 与NPC进行任务对话（播放questDialogue后完成quest_talk条件）
+// 与NPC进行任务对话
 function talkToNPCQuest(npcId) {
     const activeQuest = StoryEngine.findActiveQuestForNpc(npcId);
     if (!activeQuest || !activeQuest.questDialogue) {
@@ -104,7 +108,6 @@ function talkToNPCQuest(npcId) {
         } else {
             hideNextBtn();
             UI.setOverlay(false);
-            // ★ 标记任务对话完成，完成该任务
             StoryEngine.markConditionProgress('quest_talk', npcId);
             StoryEngine.check();
         }

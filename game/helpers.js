@@ -1,20 +1,16 @@
 // ============================================================
 //  game/helpers.js - 通用辅助函数
-//  被所有模块共享的UI输出、格式化、工具函数
 // ============================================================
 
-// 输出代理（委托给UI对象）
 function print(msg) { UI.print(msg); }
 function clearOutput() { UI.clearOutput(); }
 function printToDetail(content) { UI.printToDetail(content); }
 function clearDetailPanel() { UI.clearDetail(); }
 
-// 自适应宽度的分隔线
 function centerLine() {
     return `<div style="border-top: 1px solid #ffffffff;margin:10px 0;"></div>`;
 }
 
-// 居中标题
 function makeTitle(text) {
     return `<div style="display: flex; justify-content: center; align-items: center;">
 <span style="flex: 1; border-top: 1px solid #ffffffff; margin-right: 8px;"></span>
@@ -23,19 +19,16 @@ function makeTitle(text) {
 </div>`;
 }
 
-// 物品类型名称映射
 function getItemTypeName(type) {
     const map = { weapon: '武器', armor: '防具', consumable: '消耗品', readable: '读物', misc: '杂物', accessory: '饰品', limb: '肢体' };
     return map[type] || type;
 }
 
-// 角色类型名称映射
 function getCharacterTypeName(type) {
     const map = { npc: 'NPC', enemy: '敌人', boss: '首领' };
     return map[type] || type;
 }
 
-// 物品类型对应emoji
 function getItemEmoji(item) {
     if (!item) return '📦';
     if (item.type === 'weapon') return '⚔️';
@@ -45,7 +38,6 @@ function getItemEmoji(item) {
     return '📦';
 }
 
-// 装备稀有度颜色映射
 const RARITY_COLORS = {
     normal:    '#c0c0c0',
     good:      '#66cc66',
@@ -66,20 +58,19 @@ function getRarityColor(rarity) {
     return RARITY_COLORS[rarity] || '#c0c0c0';
 }
 
+// ★ 装备显示名：前缀和名称都带品质颜色
 function getEquipmentDisplayName(item) {
     if (!item || !item.rarity) return item ? item.name : '';
     const color = getRarityColor(item.rarity);
     const prefix = item.crafted ? '<span style="color:' + color + ';">★</span>' : '';
     const rarityLabel = RARITY_NAMES[item.rarity] || '';
-    return prefix + '【' + rarityLabel + '】<span style="color:' + color + ';">' + item.name + '</span>';
+    return prefix + '<span style="color:' + color + ';">【' + rarityLabel + '】' + item.name + '</span>';
 }
 
-// 从背包查找物品
 function findItemById(itemId) {
     return gameState.player.inventory.find(item => item.id === itemId) || null;
 }
 
-// 从背包移除物品
 function removeItemFromInventory(itemId) {
     const index = gameState.player.inventory.findIndex(item => item.id === itemId);
     if (index !== -1) {
@@ -89,7 +80,6 @@ function removeItemFromInventory(itemId) {
     return false;
 }
 
-// 剧情Next按钮系统
 let _storyNextCallback = null;
 
 function showNextBtn(callback) {
@@ -100,20 +90,14 @@ function hideNextBtn() {
     UI.toggleNextBtn(false);
 }
 
-// 统一判定：物品是否不可拾取（供 look.js、pickup.js 共用）
-// 需同时检查 item 对象的 notPickable 属性和 itemId 模式匹配
 function isItemUnpickable(itemOrId) {
-    // 支持传入 item 对象或 itemId 字符串
     const item = (typeof itemOrId === 'string') ? getItemInfoById(itemOrId) : itemOrId;
     const itemId = (typeof itemOrId === 'string') ? itemOrId : (item ? item.id : '');
-
     if (item && item.notPickable) return true;
     if (item && item.type === 'portal') return true;
-
-    // ID 模式匹配 —— 场景交互类物品不可拾取
     const unpickablePatterns = [
         'ladder', 'dynamite', 'heavy_wooden_door', 'medium_wooden_door',
-        'spiral_stairs', 'stairs_to_', 'stove', 'milker', 'workbench',
+        'spiral_stairs', 'stairs_', 'stove', 'milker', 'workbench',
         'mansion_gate_door', 'wooden_hut', 'hut_door', 'side_gate_door',
         'randolph_statue', 'stone_wall', 'wardrobe', 'mine_pit',
         'teleport_circle', 'tunnel_entrance', 'leaf_pile'
@@ -121,12 +105,10 @@ function isItemUnpickable(itemOrId) {
     return unpickablePatterns.some(p => itemId.includes(p));
 }
 
-// 西侧矿道红色场景检测
 function isMine4Area(roomId) {
     return ['tunnel_4_west_4', 'tunnel_4_west_5', 'tunnel_4_west_6', 'tunnel_4_west_7'].includes(roomId);
 }
 
-// 检查升级
 function checkLevelUp() {
     const player = gameState.player;
     while (player.exp >= player.maxExp) {
@@ -141,19 +123,17 @@ function checkLevelUp() {
         player.maxSp = Math.floor(player.maxSp + 2);
         player.sp = player.maxSp;
         player.maxExp = Math.floor(player.maxExp * multiplier);
-
         print("");
         print(`<span style="color: #ffdd44;">═══════════════════════════</span>`);
         print(`<span style="color: #ffdd44; font-weight: bold;">【升级！】等级提升至 ${player.level}！</span>`);
         print(`<span style="color: #aaffaa;">生命值上限: ${player.maxHp}  |  攻击力: ${Math.floor(player.atk)}  |  防御力: ${Math.floor(player.def)}</span>`);
         print(`<span style="color: #aaffaa;">技力上限: ${player.maxSp}  |  灵巧: ${Math.floor(player.agi)}</span>`);
         print(`<span style="color: #ffdd44;">下一级所需经验: ${player.maxExp}</span>`);
-        print(`<span style="color: #ffdd44;">═══════════════════════════</span>`);
+        print(`<span style="color: #ffdd44;">═══════════════════════</span>`);
     }
     print(`<span style="color: #888;">当前经验: ${player.exp}/${player.maxExp}</span>`);
 }
 
-// 魔镜传送功能
 const MIRROR_TELEPORT_DESTINATIONS = [
     { id: 'mine_gate', name: '矿场大门', roomName: '矿场大门' }
 ];
@@ -161,30 +141,22 @@ const MIRROR_TELEPORT_DESTINATIONS = [
 function useMagicMirror() {
     const mirror = findItemById('magic_mirror');
     if (!mirror) {
-        // 检查装备栏
-        if (gameState.player.equipment.accessory && gameState.player.equipment.accessory.id === 'magic_mirror') {
-            // 允许从装备栏使用
-        } else {
+        if (!(gameState.player.equipment.accessory && gameState.player.equipment.accessory.id === 'magic_mirror')) {
             print(`<span style="color: #ffaaaa;">你没有魔镜！</span>`);
             return;
         }
     }
-
     clearDetailPanel();
     currentPanel = null;
-
     let html = makeTitle('🌀 魔镜传送');
     html += `<div style="color: #888; margin-bottom: 8px;">选择要传送的目的地：</div>\n`;
-
     MIRROR_TELEPORT_DESTINATIONS.forEach(dest => {
         const room = gameState.world[dest.id];
         const roomName = room ? room.name : dest.roomName;
         html += `<div style="margin: 4px 0;"><span style="color: #6688ff; text-decoration: underline; cursor: pointer;" onclick="teleportViaMirror('${dest.id}')">📍 ${roomName}</span></div>\n`;
     });
-
     html += centerLine();
     html += `<div><span style="color: #aaa; cursor: pointer;" onclick="clearDetailPanel()">↩️ 关闭</span></div>`;
-
     UI.setDetail(html);
     currentPanel = 'mirror_teleport';
 }
@@ -195,7 +167,6 @@ function teleportViaMirror(roomId) {
         print(`<span style="color: #ffaaaa;">传送失败：目的地不存在。</span>`);
         return;
     }
-
     gameState.player.location = roomId;
     clearDetailPanel();
     currentPanel = null;
@@ -209,7 +180,35 @@ function teleportViaMirror(roomId) {
     StoryEngine.check();
 }
 
-// ★ 骑士套检测
+function isItemSellable(item) {
+    if (!item) return false;
+    if (item.id && item.id.includes('corpse')) return false;
+    if (item.type === 'limb' || item.story) return false;
+    if (item.type === 'important') return false;
+    if (item.type === 'readable') return false;
+    if (item.id === 'gold_coin') return false;
+    return true;
+}
+
+function getItemSellPrice(item) {
+    if (!item) return 0;
+    if (item.type === 'weapon' || item.type === 'armor' || item.type === 'accessory') {
+        const atk = item.atk || 0;
+        const def = item.def || 0;
+        const agi = Math.abs(item.agi || 0);
+        let price = atk * 3 + def * 3 + agi * 2;
+        if (item.rarity) {
+            const rarityMultiplier = { normal: 1, fine: 1.5, rare: 2.5, epic: 4, legendary: 8 };
+            price = Math.floor(price * (rarityMultiplier[item.rarity] || 1));
+        }
+        return Math.max(1, price);
+    }
+    if (item.type === 'consumable' && item.value) {
+        return Math.floor(item.value * 2);
+    }
+    return 5;
+}
+
 function hasKnightSetBonus() {
     const eq = gameState.player.equipment;
     return eq.weapon && (eq.weapon.id === 'knight_greatsword' || eq.weapon.id.startsWith('crafted_knight_greatsword'))
@@ -217,8 +216,28 @@ function hasKnightSetBonus() {
         && eq.accessory && eq.accessory.id === 'knight_emblem';
 }
 
-// 查看状态
+// ★ 检测套装状态变化并同步技能（供装备/卸下时调用）
+function checkKnightSetChange() {
+    const skills = gameState.player.skills;
+    const hadVow = skills.includes('player_vow');
+    const hadSacrifice = skills.includes('player_sacrifice');
+    const hasSet = hasKnightSetBonus();
+
+    if (hasSet && (!hadVow || !hadSacrifice)) {
+        if (!hadVow) skills.push('player_vow');
+        if (!hadSacrifice) skills.push('player_sacrifice');
+        print(`<span style="color: #ffd700; font-weight: bold;">✨ 骑士套装效果触发！获得临时技能「誓言」「舍身」</span>`);
+    } else if (!hasSet && (hadVow || hadSacrifice)) {
+        const idx1 = skills.indexOf('player_vow');
+        if (idx1 > -1) skills.splice(idx1, 1);
+        const idx2 = skills.indexOf('player_sacrifice');
+        if (idx2 > -1) skills.splice(idx2, 1);
+        print(`<span style="color: #888;">骑士套装效果已消失，临时技能已移除。</span>`);
+    }
+}
+
 function showStatus() {
     const p = gameState.player;
-    print(`<span style="color: #c3b38d;">👤 ${p.name}  |  ❤️ HP: ${p.hp}/${p.maxHp}  |  📍 ${gameState.world[p.location].name}</span>`);
+    const gold = p.gold || 0;
+    print(`<span style="color: #c3b38d;">👤 ${p.name}  |  ❤️ HP: ${p.hp}/${p.maxHp}  |  💰 ${gold}金币  |  📍 ${gameState.world[p.location].name}</span>`);
 }

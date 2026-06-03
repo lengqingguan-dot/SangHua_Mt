@@ -461,7 +461,7 @@ const WORLD_TEMPLATE = {
         desc: "一间简陋的棚屋，屋顶用破旧的油毡覆盖，墙壁由薄木板拼凑而成。\n屋内摆放着几张破旧的床铺，床上躺着几个熟睡的矿工。空气中弥漫着汗臭、霉味和疾病的气息。\n北边是宿舍大门，南边是下一间宿舍。",
         exits: { north: "dormitory_gate", south: "dormitory_2" },
         items: [],
-        npcs: ["sleeping_miner", "sleeping_miner", "sleeping_miner", "sleeping_miner"]
+        npcs: []
     },
     // 矿工宿舍2（中间）
     dormitory_2: {
@@ -469,7 +469,7 @@ const WORLD_TEMPLATE = {
         desc: "一间简陋的棚屋，与其他的宿舍没有什么区别。\n几张破旧的床铺上躺着熟睡的矿工，他们的鼾声此起彼伏。墙角堆着一些破旧的衣物和工具。\n北边是上一间宿舍，南边是下一间宿舍。",
         exits: { north: "dormitory_1", south: "dormitory_3" },
         items: [],
-        npcs: ["sleeping_miner", "sleeping_miner", "sleeping_miner", "sleeping_miner"]
+        npcs: []
     },
     // 矿工宿舍3（最南侧，有火折子）
     dormitory_3: {
@@ -477,7 +477,7 @@ const WORLD_TEMPLATE = {
         desc: "这间宿舍比其他两间更加阴暗潮湿，靠近山体的墙壁上有明显的渗水痕迹。\n几张破旧的床铺上躺着熟睡的矿工。在角落的破旧箱子里，你注意到有一些矿工的私人物品。\n北边是上一间宿舍。",
         exits: { north: "dormitory_2" },
         items: ["tinder"],
-        npcs: ["sleeping_miner", "sleeping_miner", "sleeping_miner", "sleeping_miner"]
+        npcs: []
     },
     // [8] 一号矿井口（地表）
     mine_exit_1: {

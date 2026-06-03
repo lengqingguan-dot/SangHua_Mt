@@ -176,8 +176,8 @@
             min-width: 520px;
             display: flex;
             flex-direction: column;
-            justify-content: flex-start;  /* 内容顶部对齐 */
-            height: 700px;                 /* 固定总高度，两个面板共享 */
+            justify-content: flex-start;
+            height: 700px;
         }
 
         /* 详情栏样式 */
@@ -189,7 +189,7 @@
             margin-bottom: 10px;
             min-height: 180px;
             max-height: 300px;
-            flex: 0 0 auto;               /* 默认高度，有内容时撑开 */
+            flex: 0 0 auto;
             overflow-y: auto;
             white-space: pre-wrap;
             font-size: 14px;
@@ -226,22 +226,19 @@
             line-height: 1.6;
         }
 
-        /* 剧情文字 - 亮红色 */
         .story-text {
             color: #ff6666;
         }
 
-        /* 场景描述 - 亮白色 */
         .scene-desc {
             color: #ffffff;
         }
 
-        /* 输出区样式 - 自动填充剩余空间 */
         #output {
             background: #03060a;
             padding: 15px;
-            flex: 1;                     /* 自动占据剩余空间 */
-            min-height: 0;               /* 关键：允许 flex 项缩小 */
+            flex: 1;
+            min-height: 0;
             overflow-y: auto;
             border: 1px solid #3a4a6a;
             margin-bottom: 10px;
@@ -355,7 +352,7 @@
         }
         .map-cell.empty {
             opacity: 0.3;
-            pointer-events: none;   /* 禁止点击 */
+            pointer-events: none;
             background: #0a1018;
             border-color: #2a3a4a;
         }
@@ -376,7 +373,6 @@
             margin-top: 15px;
             font-size: 13px;
         }
-        /* 剧情播放时的遮罩 */
         #block-overlay {
             position: fixed;
             top: 0;
@@ -399,7 +395,6 @@
             pointer-events: none;
         }
 
-        /* 剧情Next按钮 */
         #story-next-btn {
             display: none;
             position: fixed;
@@ -420,7 +415,6 @@
             background: #3a5a6a;
             border-color: #c0d4e6;
         }
-        /* 响应式设计 */
         @media (max-width: 768px) {
             #main-menu {
                 padding: 20px;
@@ -441,7 +435,6 @@
 </head>
 <body>
     <div id="block-overlay"></div>
-    <!-- 剧情Next按钮（放在body层级，避免被overflow和遮罩影响） -->
     <button id="story-next-btn" onclick="onStoryNextClick()">▶ Next</button>
     <div id="main-menu">
         <h1>夜出桑华山</h1>
@@ -452,23 +445,15 @@
         </div>
     </div>
     <div id="game-container" class="game-container" style="display:none;">
-        <!-- 第一列：周围可见 -->
         <div class="left-panel">
             <div class="panel-title">📍 周围可见</div>
             <div id="scene-items-list" class="scene-content">— 暂无 —</div>
         </div>
-
-        <!-- 第二列：主输出区（包含命令输入和按钮） -->
         <div class="center-panel">
-            <!-- 详情栏 -->
             <div id="detail-panel">
                 <span style="color: #888;">点击物品或NPC查看详情...</span>
             </div>
-            
-            <div id="output">载入中…<br>
-            </div>
-            
-            <!-- 功能按钮组 -->
+            <div id="output">载入中…<br></div>
             <div class="action-buttons">
                 <button id="btn-inventory" onclick="showInventoryPanel()">🎒 物品</button>
                 <button id="btn-equipment" onclick="showEquipmentPanel()">⚔️ 装备</button>
@@ -476,7 +461,6 @@
                 <button id="btn-quests" onclick="showQuestsPanel()">📜 任务</button>
                 <button id="btn-skills" onclick="showSkillsPanel()">✨ 技能</button>
             </div>
-            
             <div id="input-line">
                 <input type="text" id="cmd-input" placeholder="输入命令 (如 look, n, i)..." autofocus>
                 <button onclick="sendCommand()">⏎ 发送</button>
@@ -489,45 +473,33 @@
                 <button onclick="clearOutputWindow()">🧹 清空输出</button>
             </div>
         </div>
-
-        <!-- 第三列：小地图 -->
         <div class="right-panel">
             <div class="minimap">
                 <div class="current-room-name" id="room-name-display">二号矿井深处</div>
                 <div>🧭 周围地形（点击前往）</div>
                 <div class="map-grid">
-                    <!-- 第一行：空、北、空 -->
                     <div></div>
                     <div class="map-cell" id="map-north">
-                        <div style="font-size:12px; opacity:0.8;">⬆️ 北</div>
-                        <div id="north-room">-</div>
+                        <div style="font-size:12px; opacity:0.8;">⬆️ 北</div><div id="north-room">-</div>
                     </div>
                     <div></div>
-
-                    <!-- 第二行：西、当前、东 -->
                     <div class="map-cell" id="map-west">
-                        <div style="font-size:12px; opacity:0.8;">⬅️ 西</div>
-                        <div id="west-room">-</div>
+                        <div style="font-size:12px; opacity:0.8;">⬅️ 西</div><div id="west-room">-</div>
                     </div>
                     <div class="map-cell" style="background:#1a2a3a; border-color:#7a9aae;">
-                        <div style="font-size:12px;">📍 当前</div>
-                        <div id="current-room-name-on-map">矿井深处</div>
+                        <div style="font-size:12px;">📍 当前</div><div id="current-room-name-on-map">矿井深处</div>
                     </div>
                     <div class="map-cell" id="map-east">
-                        <div style="font-size:12px; opacity:0.8;">➡️ 东</div>
-                        <div id="east-room">-</div>
+                        <div style="font-size:12px; opacity:0.8;">➡️ 东</div><div id="east-room">-</div>
                     </div>
-
-                    <!-- 第三行：空、南、空 -->
                     <div></div>
                     <div class="map-cell" id="map-south">
-                        <div style="font-size:12px; opacity:0.8;">⬇️ 南</div>
-                        <div id="south-room">-</div>
+                        <div style="font-size:12px; opacity:0.8;">⬇️ 南</div><div id="south-room">-</div>
                     </div>
                     <div></div>
                 </div>
                 <div class="story-note">
-                    “桑华山的石矿之下，正下着血与仇的隐秘暴雨。”
+                    "桑华山的石矿之下，正下着血与仇的隐秘暴雨。"
                 </div>
             </div>
         </div>
@@ -552,13 +524,14 @@
     <script src="world/world_1.js"></script>
     <script src="world/world.js"></script>
     <script src="character.js"></script>
+    <script src="characters/char_mainNpcs.js"></script>
+    <script src="characters/char_hostileNpcs.js"></script>
+    <script src="characters/char_generalNpcs.js"></script>
     <script src="modLoader.js"></script>
     <script src="ui.js"></script>
     <script src="game/battle.js"></script>
     <script src="game/skills.js"></script>
-    <!-- 游戏逻辑（game.js 包含未拆分的 crafting/corpseSystem/scenes） -->
     <script src="game.js"></script>
-    <!-- game/ 模块化逻辑（覆盖 game.js 中同名函数） -->
     <script src="game/state.js"></script>
     <script src="game/helpers.js"></script>
     <script src="game/story.js"></script>

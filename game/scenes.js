@@ -1,9 +1,6 @@
 // ============================================================
 //  game/scenes.js - 特殊场景交互
-//  雷管/榨奶器/落叶堆/地道/传送阵/壁橱/矿坑/铁锁/石壁
 // ============================================================
-
-// ==================== 铁锁 / 石壁 ====================
 
 function openIronLockWithKey(lockId) {
     const room = gameState.world[gameState.player.location];
@@ -16,188 +13,47 @@ function openIronLockWithKey(lockId) {
     showNext();
 }
 
-function breakLock(lockId) {
-    const room = gameState.world[gameState.player.location];
-    if (!room || !room.items || !room.items.includes(lockId)) { print("铁锁已不存在。"); return; }
-    clearDetailPanel(); currentPanel = null;
-    const weapon = gameState.player.equipment.weapon;
-    const maxDamage = (gameState.player.atk || 1) + (weapon && weapon.atk ? weapon.atk : 0);
-    print(`你握紧武器，用力砸向铁锁...（伤害:${maxDamage}）`);
-    if (maxDamage >= 20) { print(`<span style="color:#ff6666;">咔嚓！铁锁被砸开了！</span>`); const idx = room.items.indexOf(lockId); if (idx > -1) { room.items.splice(idx, 1); const brokenId = `broken_lock_${Date.now()}`; const broken = createItemFromTemplate('broken_lock'); if (broken) { broken.id = brokenId; ITEM_TEMPLATES[brokenId] = broken; room.items.push(brokenId); } } const pitId = `mine_pit_${Date.now()}`; ITEM_TEMPLATES[pitId] = { id: pitId, name: "矿坑", type: "misc", desc: "一个黑漆漆的矿坑...", usable: true, customAction: true, notPickable: true }; room.items.push(pitId); UI.setOverlay(true); let si = 0; const storyLines = ["你侧耳倾听...", "矿道深处传来细细簌簌的响动...", "四周陷入死一般的寂静...", "被破开的铁锁旁，黑漆漆的矿坑暴露在月光下..."]; function showSL() { if (si < storyLines.length) { print(`<span class="story-text">${storyLines[si]}</span>`); si++; setTimeout(showSL, 1300); } else { UI.setOverlay(false); updateSceneInfo(); } } showSL(); } else { print(`<span style="color:#888;">你的攻击只留下痕迹...</span>`); print(`<span style="color:#ffaaaa;">需要20点伤害</span>`); }
-}
+function breakLock(lockId) { const room = gameState.world[gameState.player.location]; if (!room || !room.items || !room.items.includes(lockId)) { print("铁锁已不存在。"); return; } clearDetailPanel(); currentPanel = null; const weapon = gameState.player.equipment.weapon; const maxDamage = (gameState.player.atk || 1) + (weapon && weapon.atk ? weapon.atk : 0); print(`你握紧武器，用力砸向铁锁...（伤害:${maxDamage}）`); if (maxDamage >= 20) { print(`<span style="color:#ff6666;">咔嚓！铁锁被砸开了！</span>`); const idx = room.items.indexOf(lockId); if (idx > -1) { room.items.splice(idx, 1); const brokenId = `broken_lock_${Date.now()}`; const broken = createItemFromTemplate('broken_lock'); if (broken) { broken.id = brokenId; ITEM_TEMPLATES[brokenId] = broken; room.items.push(brokenId); } } const pitId = `mine_pit_${Date.now()}`; ITEM_TEMPLATES[pitId] = { id: pitId, name: "矿坑", type: "misc", desc: "一个黑漆漆的矿坑...", usable: true, customAction: true, notPickable: true }; room.items.push(pitId); UI.setOverlay(true); let si = 0; const storyLines = ["你侧耳倾听...", "矿道深处传来细细簌簌的响动...", "四周陷入死一般的寂静...", "被破开的铁锁旁，黑漆漆的矿坑暴露在月光下..."]; function showSL() { if (si < storyLines.length) { print(`<span class="story-text">${storyLines[si]}</span>`); si++; setTimeout(showSL, 1300); } else { UI.setOverlay(false); updateSceneInfo(); } } showSL(); } else { print(`<span style="color:#888;">你的攻击只留下痕迹...</span>`); print(`<span style="color:#ffaaaa;">需要20点伤害</span>`); } }
 
-function enterMinePit(pitId) {
-    const room = gameState.world[gameState.player.location];
-    if (!room || !room.items || !room.items.includes(pitId)) { print("矿坑已不存在。"); return; }
+function enterMinePit(pitId) { const room = gameState.world[gameState.player.location]; if (!room || !room.items || !room.items.includes(pitId)) { print("矿坑已不存在。"); return; } clearDetailPanel(); currentPanel = null; print(""); print(`<span style="color: #ff8844;">你深吸一口气，纵身跳入黑漆漆的矿坑...</span>`); print(`<span style="color: #888;">耳边风声呼啸，黑暗吞噬了一切。</span>`); gameState.player.hp = Math.max(0, gameState.player.hp - 20); print(`<span style="color: #ff6666;">砰！你重重地摔在矿道地面上，浑身剧痛不已。</span>`); print(`<span style="color: #ff6666;">你受到了20点坠落伤害！</span>`); print(`<span style="color: #aaffaa;">当前 HP: ${gameState.player.hp}/${gameState.player.maxHp}</span>`); print(""); if (gameState.player.hp <= 0) { print(`<span style="color: #ff6666;">坠落的重创夺去了你最后的力气...</span>`); print(`<span style="color: #aaa;">（游戏将重新开始...）</span>`); setTimeout(() => location.reload(), 2000); return; } const idx = room.items.indexOf(pitId); if (idx > -1) { room.items.splice(idx, 1); delete ITEM_TEMPLATES[pitId]; } gameState.player.location = 'tunnel_exit_4'; look(); updateMinimap(); updateSceneInfo(); StoryEngine.check(); }
 
-    clearDetailPanel(); currentPanel = null;
-    print("");
-    print(`<span style="color: #ff8844;">你深吸一口气，纵身跳入黑漆漆的矿坑...</span>`);
-    print(`<span style="color: #888;">耳边风声呼啸，黑暗吞噬了一切。</span>`);
+function mineStoneWall(wallId) { const room = gameState.world[gameState.player.location]; if (!room || !room.items || !room.items.includes(wallId)) { print("石壁已不存在。"); return; } const weapon = gameState.player.equipment.weapon; if (!weapon || weapon.id !== 'pickaxe') { print(`<span style="color:#ff6666;">你需要装备镐子才能挖掘石壁。</span>`); return; } const stoneCount = Math.random() < 0.5 ? 1 : 2; for (let i = 0; i < stoneCount; i++) { const stone = createItemFromTemplate('stone'); if (stone) gameState.player.inventory.push(stone); } print(`<span style="color:#aaa;">你举起镐头，对准石壁狠狠砸下——碎石飞溅，尘土弥漫。</span>`); print(`<span style="color:#aaffaa;">你挖下了${stoneCount}块石块。</span>`); gameState.player.exp += stoneCount; checkLevelUp(); clearDetailPanel(); currentPanel = null; updateSceneInfo(); }
 
-    // 坠落伤害
-    gameState.player.hp = Math.max(0, gameState.player.hp - 20);
-    print(`<span style="color: #ff6666;">砰！你重重地摔在矿道地面上，浑身剧痛不已。</span>`);
-    print(`<span style="color: #ff6666;">你受到了20点坠落伤害！</span>`);
-    print(`<span style="color: #aaffaa;">当前 HP: ${gameState.player.hp}/${gameState.player.maxHp}</span>`);
-    print("");
+function jumpIntoPit(pitId) { const room = gameState.world[gameState.player.location]; if (!room || !room.items || !room.items.includes(pitId)) { print("矿坑已不存在。"); return; } clearDetailPanel(); currentPanel = null; UI.setOverlay(true); let t = 1300; const events = [() => print(`<span class="story-text">身体在黑暗中急速下坠...</span>`), () => print(`<span class="story-text">碎石和岩壁擦过你的手臂...</span>`), () => print(`<span class="story-text">砰！你重重地摔在矿道地面上。</span>`), () => { gameState.player.hp = Math.max(0, gameState.player.hp - 10); print(`<span style="color:#ff6666;">受到10点坠落伤害！HP:${gameState.player.hp}/${gameState.player.maxHp}</span>`); const idx = room.items.indexOf(pitId); if (idx > -1) { room.items.splice(idx, 1); delete ITEM_TEMPLATES[pitId]; } gameState.player.location = 'tunnel_exit_4'; UI.setOverlay(false); look(); updateMinimap(); updateSceneInfo(); }]; events.forEach((fn, i) => setTimeout(fn, (i + 1) * t)); }
 
-    if (gameState.player.hp <= 0) {
-        print(`<span style="color: #ff6666;">坠落的重创夺去了你最后的力气...</span>`);
-        print(`<span style="color: #aaa;">（游戏将重新开始...）</span>`);
-        setTimeout(() => location.reload(), 2000);
-        return;
-    }
+function useDynamite(dynamiteId) { const room = gameState.world[gameState.player.location]; if (!room || !room.items || !room.items.includes(dynamiteId)) { print("雷管已不存在。"); return; } if (gameState.player.location !== 'mine_deep_3') { print("这里没有什么需要炸开的东西。"); return; } if (!gameState.player.inventory.some(item => item && item.id === 'tinder')) { print("你需要火折子来点燃雷管的引线。"); return; } clearDetailPanel(); currentPanel = null; UI.setOverlay(true); let i = 0; const lines = ["你取出火折子，吹燃火星...", "你点燃了雷管的引线...", "嘶嘶嘶——", "轰！！！", "巨大的爆炸声在矿道中回荡，烟尘四起，碎石飞溅！", "东边的岩壁被炸开了一个大洞！"]; function showNext() { if (i < lines.length) { print(`<span style="color:#${i===3?'ff4444':'ffaa66'};">${lines[i]}</span>`); i++; setTimeout(showNext, i===3?1500:1000); } else { dynamiteComplete(room, dynamiteId); } } showNext(); }
 
-    // 移除矿坑物品（已跳下）
-    const idx = room.items.indexOf(pitId);
-    if (idx > -1) { room.items.splice(idx, 1); delete ITEM_TEMPLATES[pitId]; }
-
-    gameState.player.location = 'tunnel_exit_4';
-    look();
-    updateMinimap();
-    updateSceneInfo();
-    StoryEngine.check();
-}
-
-function mineStoneWall(wallId) {
-    const room = gameState.world[gameState.player.location];
-    if (!room || !room.items || !room.items.includes(wallId)) { print("石壁已不存在。"); return; }
-    const weapon = gameState.player.equipment.weapon;
-    if (!weapon || weapon.id !== 'pickaxe') { print(`<span style="color:#ff6666;">你需要装备镐子才能挖掘石壁。</span>`); return; }
-    const stoneCount = Math.random() < 0.5 ? 1 : 2;
-    for (let i = 0; i < stoneCount; i++) { const stone = createItemFromTemplate('stone'); if (stone) gameState.player.inventory.push(stone); }
-    print(`<span style="color:#aaa;">你举起镐头，对准石壁狠狠砸下——碎石飞溅，尘土弥漫。</span>`);
-    print(`<span style="color:#aaffaa;">你挖下了${stoneCount}块石块。</span>`);
-    gameState.player.exp += stoneCount; checkLevelUp();
-    clearDetailPanel(); currentPanel = null; updateSceneInfo();
-}
-
-function jumpIntoPit(pitId) {
-    const room = gameState.world[gameState.player.location];
-    if (!room || !room.items || !room.items.includes(pitId)) { print("矿坑已不存在。"); return; }
-    clearDetailPanel(); currentPanel = null; UI.setOverlay(true);
-    let t = 1300;
-    const events = [() => print(`<span class="story-text">身体在黑暗中急速下坠...</span>`),
-        () => print(`<span class="story-text">碎石和岩壁擦过你的手臂...</span>`),
-        () => print(`<span class="story-text">砰！你重重地摔在矿道地面上。</span>`),
-        () => { gameState.player.hp = Math.max(0, gameState.player.hp - 10); print(`<span style="color:#ff6666;">受到10点坠落伤害！HP:${gameState.player.hp}/${gameState.player.maxHp}</span>`); const idx = room.items.indexOf(pitId); if (idx > -1) { room.items.splice(idx, 1); delete ITEM_TEMPLATES[pitId]; } gameState.player.location = 'tunnel_exit_4'; UI.setOverlay(false); look(); updateMinimap(); updateSceneInfo(); }];
-    events.forEach((fn, i) => setTimeout(fn, (i + 1) * t));
-}
-
-// ==================== 雷管 ====================
-
-function useDynamite(dynamiteId) {
-    const room = gameState.world[gameState.player.location];
-    if (!room || !room.items || !room.items.includes(dynamiteId)) { print("雷管已不存在。"); return; }
-    if (gameState.player.location !== 'mine_deep_3') { print("这里没有什么需要炸开的东西。"); return; }
-    if (!gameState.player.inventory.some(item => item && item.id === 'tinder')) { print("你需要火折子来点燃雷管的引线。"); return; }
-    clearDetailPanel(); currentPanel = null;
-    UI.setOverlay(true);
-    let i = 0; const lines = ["你取出火折子，吹燃火星...", "你点燃了雷管的引线...", "嘶嘶嘶——", "轰！！！", "巨大的爆炸声在矿道中回荡，烟尘四起，碎石飞溅！", "东边的岩壁被炸开了一个大洞！"];
-    function showNext() { if (i < lines.length) { print(`<span style="color:#${i===3?'ff4444':'ffaa66'};">${lines[i]}</span>`); i++; setTimeout(showNext, i===3?1500:1000); } else { dynamiteComplete(room, dynamiteId); } }
-    showNext();
-}
-
+// ★ 统一使用 createCorpse 生成尸体
 function dynamiteComplete(room, dynamiteId) {
     const idx = room.items.indexOf(dynamiteId); if (idx > -1) room.items.splice(idx, 1);
     room.exits.east = 'collapsed_wall'; room.desc = "矿道在这里到达尽头...东边的岩壁被炸开了一个大洞。";
-    const tunnel4South = gameState.world['tunnel_4_south']; if (tunnel4South) { tunnel4South.exits.west = 'collapsed_wall'; tunnel4South.desc = tunnel4South.desc.replace('西侧是一堵坍塌的岩壁...', '西侧是通往三号矿道的通道。'); }
+    const tunnel4South = gameState.world['tunnel_4_south']; if (tunnel4South) { tunnel4South.exits.west = 'collapsed_wall'; }
     const collapsedWall = gameState.world['collapsed_wall']; if (collapsedWall) { collapsedWall.exits = { west: 'mine_deep_3', east: 'tunnel_4_south' }; collapsedWall.blocked = false; }
     let totalExp = 0, monstersKilled = 0;
     const tunnel4Rooms = [gameState.world['tunnel_4_north'], gameState.world['tunnel_4_east'], gameState.world['tunnel_4_west'], tunnel4South, gameState.world['tunnel_4_west_1'], gameState.world['tunnel_4_west_2'], gameState.world['tunnel_4_west_3']];
     const trainingGround = gameState.world['training_ground']; const lianaAlive = trainingGround && trainingGround.npcs && trainingGround.npcs.includes('liana');
-    tunnel4Rooms.forEach(rm => { if (rm && rm.npcs) { const monsters = rm.npcs.filter(n => n.includes('mad_')); monsters.forEach((monster, idx) => { const mi = getCharacterInfo(monster); if (mi && mi.exp) { totalExp += mi.exp; monstersKilled++; } if (lianaAlive) { const corpseId = `corpse_${monster}_${Date.now()}_${idx}`; const corpse = { id: corpseId, name: `${mi.name}的尸体`, type: "misc", desc: `一具被莉娅娜斩杀的尸体...`, loot: mi.drops ? [...mi.drops] : [] }; if (!rm.items) rm.items = []; rm.items.push(corpseId); ITEM_TEMPLATES[corpseId] = corpse; } }); rm.npcs = rm.npcs.filter(n => !n.includes('mad_')); } });
+    tunnel4Rooms.forEach(rm => { if (rm && rm.npcs) { const monsters = rm.npcs.filter(n => n.includes('mad_')); monsters.forEach((monster, idx) => { const mi = getCharacterInfo(monster); if (mi && mi.exp) { totalExp += mi.exp; monstersKilled++; } if (lianaAlive) { const corpseId = `corpse_${monster}_${Date.now()}_${idx}`; const corpse = createCorpse(monster); if (corpse) { corpse.id = corpseId; if (!rm.items) rm.items = []; rm.items.push(corpseId); ITEM_TEMPLATES[corpseId] = corpse; } } }); rm.npcs = rm.npcs.filter(n => !n.includes('mad_')); } });
     if (lianaAlive && monstersKilled > 0) {
         const lianaIdx = trainingGround.npcs.indexOf('liana'); if (lianaIdx > -1) trainingGround.npcs.splice(lianaIdx, 1);
         const tunnel4East = gameState.world['tunnel_4_east']; if (tunnel4East) { const hand = createItemFromTemplate('liana_hand'); const arm = createItemFromTemplate('liana_arm'); if (hand) { hand.id = `liana_hand_${Date.now()}`; ITEM_TEMPLATES[hand.id] = hand; if (!tunnel4East.items) tunnel4East.items = []; tunnel4East.items.push(hand.id); } if (arm) { arm.id = `liana_arm_${Date.now()}`; ITEM_TEMPLATES[arm.id] = arm; if (!tunnel4East.items) tunnel4East.items = []; tunnel4East.items.push(arm.id); } }
-        print(`<span style="color:#ffaaaa;">打斗声渐渐平息...</span>`);
-        print(`<span style="color:#ff6666;">${monstersKilled}个怪物倒下了...</span>`);
+        print(`<span style="color:#ffaaaa;">打斗声渐渐平息...</span>`); print(`<span style="color:#ff6666;">${monstersKilled}个怪物倒下了...</span>`);
         const tunnelExit4 = gameState.world['tunnel_exit_4']; if (tunnelExit4) { if (!tunnelExit4.npcs) tunnelExit4.npcs = []; tunnelExit4.npcs.push('liana_wounded'); }
     } else if (monstersKilled > 0) { print(`<span style="color:#ff6666;">${monstersKilled}个怪物在爆炸中丧生！</span>`); }
     if (totalExp > 0) { gameState.player.exp += totalExp; checkLevelUp(); }
-    UI.setOverlay(false);
-    updateSceneInfo(); updateMinimap();
+    UI.setOverlay(false); updateSceneInfo(); updateMinimap();
 }
 
-// ==================== 榨奶器 ====================
+function useMilker(milkerId) { const room = gameState.world[gameState.player.location]; if (!room || !room.items || !room.items.includes(milkerId)) { print("榨奶器已不存在。"); return; } const milkeableItems = []; gameState.player.inventory.forEach((item, index) => { if (item && item.milkItem) { const currentCount = item.milkedCount || 0; if (currentCount < (item.maxMilkCount || 1)) milkeableItems.push({ item, index }); } }); if (milkeableItems.length === 0) { print("你翻遍了背包，但没有找到可以榨奶的乳房。"); return; } let html = makeTitle('🥛 榨奶器'); milkeableItems.forEach(({ item, index }) => { const currentCount = item.milkedCount || 0; const maxCount = item.maxMilkCount || 1; const milkTemplate = ITEM_TEMPLATES[item.milkItem]; const milkName = milkTemplate ? milkTemplate.name : '乳汁'; html += `<div style="margin:10px 0;padding:10px;background:#2a2a2a;border-radius:4px;border-left:3px solid #ffddaa;"><div style="color:#ffddaa;">🥛 ${item.name}</div><div style="color:#888;font-size:12px;">产出:${milkName}（恢复${milkTemplate?milkTemplate.value:'?'}生命）</div><div style="color:#aaa;font-size:12px;">剩余:${maxCount-currentCount}/${maxCount}</div><span style="color:#ffddaa;cursor:pointer;" onclick="startMilkingProcess(${index})">🥛开始榨奶</span></div>`; }); html += centerLine() + `<div style="color:#aaa;cursor:pointer;" onclick="clearDetailPanel()">↩️返回</div>`; UI.setDetail(html); currentPanel = 'milking_menu'; }
 
-function useMilker(milkerId) {
-    const room = gameState.world[gameState.player.location];
-    if (!room || !room.items || !room.items.includes(milkerId)) { print("榨奶器已不存在。"); return; }
-    const milkeableItems = [];
-    gameState.player.inventory.forEach((item, index) => { if (item && item.milkItem) { const currentCount = item.milkedCount || 0; if (currentCount < (item.maxMilkCount || 1)) milkeableItems.push({ item, index }); } });
-    if (milkeableItems.length === 0) { print("你翻遍了背包，但没有找到可以榨奶的乳房。"); return; }
-    let html = makeTitle('🥛 榨奶器');
-    milkeableItems.forEach(({ item, index }) => {
-        const currentCount = item.milkedCount || 0; const maxCount = item.maxMilkCount || 1;
-        const milkTemplate = ITEM_TEMPLATES[item.milkItem]; const milkName = milkTemplate ? milkTemplate.name : '乳汁';
-        html += `<div style="margin:10px 0;padding:10px;background:#2a2a2a;border-radius:4px;border-left:3px solid #ffddaa;"><div style="color:#ffddaa;">🥛 ${item.name}</div><div style="color:#888;font-size:12px;">产出:${milkName}（恢复${milkTemplate?milkTemplate.value:'?'}生命）</div><div style="color:#aaa;font-size:12px;">剩余:${maxCount-currentCount}/${maxCount}</div><span style="color:#ffddaa;cursor:pointer;" onclick="startMilkingProcess(${index})">🥛开始榨奶</span></div>`;
-    });
-    html += centerLine() + `<div style="color:#aaa;cursor:pointer;" onclick="clearDetailPanel()">↩️返回</div>`;
-    UI.setDetail(html); currentPanel = 'milking_menu';
-}
+function startMilkingProcess(inventoryIndex) { const breast = gameState.player.inventory[inventoryIndex]; if (!breast || !breast.milkItem) { print("该物品无法榨奶。"); return; } clearDetailPanel(); currentPanel = null; print(`<span style="color:#ffddaa;">你将「${breast.name}」放入榨奶器...</span>`); const milkStories = breast.milkStory || [["你启动了榨奶器..."]]; const milkStory = Array.isArray(milkStories[0]) ? milkStories[Math.min(breast.milkedCount || 0, milkStories.length - 1)] : milkStories; let i = 0; function showNext() { if (i < milkStory.length) { print("<br>"); print(`<span style="color:#a8ff44;">${milkStory[i]}</span>`); i++; showNextBtn(showNext); } else { hideNextBtn(); const milkItem = createItemFromTemplate(breast.milkItem); if (milkItem) { gameState.player.inventory.push(milkItem); breast.milkedCount = (breast.milkedCount || 0) + 1; print(`🥛获得了「${milkItem.name}」！`); if (breast.milkedCount >= (breast.maxMilkCount || 1) && breast.driedBreastId) { const dried = createItemFromTemplate(breast.driedBreastId); if (dried) { gameState.player.inventory.splice(inventoryIndex, 1, dried); print(`「${breast.name}」已变为「${dried.name}」。`); } } } showInventoryPanel(); } } showNext(); }
 
-function startMilkingProcess(inventoryIndex) {
-    const breast = gameState.player.inventory[inventoryIndex]; if (!breast || !breast.milkItem) { print("该物品无法榨奶。"); return; }
-    clearDetailPanel(); currentPanel = null;
-    print(`<span style="color:#ffddaa;">你将「${breast.name}」放入榨奶器...</span>`);
-    const milkStories = breast.milkStory || [["你启动了榨奶器..."]];
-    const milkStory = Array.isArray(milkStories[0]) ? milkStories[Math.min(breast.milkedCount || 0, milkStories.length - 1)] : milkStories;
-    let i = 0; function showNext() { if (i < milkStory.length) { print("<br>"); print(`<span style="color:#a8ff44;">${milkStory[i]}</span>`); i++; showNextBtn(showNext); } else { hideNextBtn(); const milkItem = createItemFromTemplate(breast.milkItem); if (milkItem) { gameState.player.inventory.push(milkItem); breast.milkedCount = (breast.milkedCount || 0) + 1; print(`🥛获得了「${milkItem.name}」！`); if (breast.milkedCount >= (breast.maxMilkCount || 1) && breast.driedBreastId) { const dried = createItemFromTemplate(breast.driedBreastId); if (dried) { gameState.player.inventory.splice(inventoryIndex, 1, dried); print(`「${breast.name}」已变为「${dried.name}」。`); } } } showInventoryPanel(); } }
-    showNext();
-}
+function sweepLeafPile() { const room = gameState.world[gameState.player.location]; if (!room || !room.items) return; const leafIndex = room.items.findIndex(id => { const item = getItemInfoById(id); return item && item.id === 'leaf_pile'; }); if (leafIndex === -1) { print("这里没有落叶堆。"); return; } clearDetailPanel(); currentPanel = null; UI.setOverlay(true); print(`<span style="color:#aaffaa;">你弯下腰，将厚厚的落叶堆推向两旁...</span>`); setTimeout(() => { room.items.splice(leafIndex, 1); const tunnel = createItemFromTemplate('tunnel_entrance'); if (tunnel) { tunnel.id = 'tunnel_entrance'; ITEM_TEMPLATES['tunnel_entrance'] = tunnel; room.items.push('tunnel_entrance'); } room.desc = room.desc.replace('地上堆积着厚厚的一层枯叶，看起来有些不自然。', '地上的落叶被你扫开，露出一个黑漆漆的地道入口。'); print(`<span style="color:#aaffaa;">落叶被扫开了，露出一个隐蔽的地道入口！</span>`); UI.setOverlay(false); updateSceneInfo(); }, 1500); }
 
-// ==================== 落叶堆 / 地道 / 传送阵 / 壁橱 ====================
+function enterTunnel() { const room = gameState.world[gameState.player.location]; if (!room || !room.items || !room.items.includes('tunnel_entrance')) { print("这里没有地道入口。"); return; } clearDetailPanel(); currentPanel = null; UI.setOverlay(true); print(`<span style="color:#aaffaa;">你小心翼翼地钻进了地道...</span>`); setTimeout(() => { gameState.player.location = 'basement'; UI.setOverlay(false); look(); updateMinimap(); updateSceneInfo(); }, 1500); }
 
-function sweepLeafPile() {
-    const room = gameState.world[gameState.player.location]; if (!room || !room.items) return;
-    const leafIndex = room.items.findIndex(id => { const item = getItemInfoById(id); return item && item.id === 'leaf_pile'; });
-    if (leafIndex === -1) { print("这里没有落叶堆。"); return; }
-    clearDetailPanel(); currentPanel = null; UI.setOverlay(true);
-    print(`<span style="color:#aaffaa;">你弯下腰，将厚厚的落叶堆推向两旁...</span>`);
-    setTimeout(() => { room.items.splice(leafIndex, 1); const tunnel = createItemFromTemplate('tunnel_entrance'); if (tunnel) { tunnel.id = 'tunnel_entrance'; ITEM_TEMPLATES['tunnel_entrance'] = tunnel; room.items.push('tunnel_entrance'); } room.desc = room.desc.replace('地上堆积着厚厚的一层枯叶，看起来有些不自然。', '地上的落叶被你扫开，露出一个黑漆漆的地道入口。'); print(`<span style="color:#aaffaa;">落叶被扫开了，露出一个隐蔽的地道入口！</span>`); UI.setOverlay(false); updateSceneInfo(); }, 1500);
-}
-
-function enterTunnel() {
-    const room = gameState.world[gameState.player.location]; if (!room || !room.items || !room.items.includes('tunnel_entrance')) { print("这里没有地道入口。"); return; }
-    clearDetailPanel(); currentPanel = null; UI.setOverlay(true);
-    print(`<span style="color:#aaffaa;">你小心翼翼地钻进了地道...</span>`);
-    setTimeout(() => { gameState.player.location = 'basement'; UI.setOverlay(false); look(); updateMinimap(); updateSceneInfo(); }, 1500);
-}
-
-function useTeleportCircle(itemId) {
-    const loc = gameState.player.location; if (!gameState.world[loc]) return;
-    clearDetailPanel(); currentPanel = null;
-    if (loc === 'basement') {
-        const modList = ModLoader.getModList(); if (modList.length === 0) { print(`<span style="color:#888;">传送阵似乎没有连接到任何地方...</span>`); return; }
-        let html = makeTitle('🌀 传送阵') + `<div style="color:#6688ff;">传送阵连接着以下mod世界：</div>` + centerLine();
-        modList.forEach(mod => { const modRooms = Object.keys(ModLoader.mergedWorld); if (modRooms.length > 0) html += `<div style="margin:10px 0;padding:10px;background:#1a1a2a;border-radius:4px;border-left:3px solid #6688ff;"><div style="color:#88aaff;">🌍 ${mod.name}</div><span style="color:#6688ff;cursor:pointer;" onclick="teleportToMod('${modRooms[0]}')">🌀传送前往</span></div>`; });
-        html += centerLine() + `<div style="color:#aaa;cursor:pointer;" onclick="clearDetailPanel()">↩️返回</div>`; UI.setDetail(html);
-    } else {
-        let html = makeTitle('🌀 传送阵') + `<div style="color:#6688ff;">传送阵可以将你传送回地下室...</div>` + centerLine() + `<span style="color:#6688ff;cursor:pointer;" onclick="teleportToBasement()">🌀传送回地下室</span>` + centerLine() + `<div style="color:#aaa;cursor:pointer;" onclick="clearDetailPanel()">↩️返回</div>`; UI.setDetail(html);
-    }
-    currentPanel = 'teleport_menu';
-    // ★ 标记传送阵使用完成（支线任务3条件）
-    if (typeof StoryEngine !== 'undefined') {
-        StoryEngine.markConditionProgress('use_item', 'teleport_circle');
-    }
-}
+function useTeleportCircle(itemId) { const loc = gameState.player.location; if (!gameState.world[loc]) return; clearDetailPanel(); currentPanel = null; if (loc === 'basement') { const modList = ModLoader.getModList(); if (modList.length === 0) { print(`<span style="color:#888;">传送阵似乎没有连接到任何地方...</span>`); return; } let html = makeTitle('🌀 传送阵') + `<div style="color:#6688ff;">传送阵连接着以下mod世界：</div>` + centerLine(); modList.forEach(mod => { const modRooms = Object.keys(ModLoader.mergedWorld); if (modRooms.length > 0) html += `<div style="margin:10px 0;padding:10px;background:#1a1a2a;border-radius:4px;border-left:3px solid #6688ff;"><div style="color:#88aaff;">🌍 ${mod.name}</div><span style="color:#6688ff;cursor:pointer;" onclick="teleportToMod('${modRooms[0]}')">🌀传送前往</span></div>`; }); html += centerLine() + `<div style="color:#aaa;cursor:pointer;" onclick="clearDetailPanel()">↩️返回</div>`; UI.setDetail(html); } else { let html = makeTitle('🌀 传送阵') + `<div style="color:#6688ff;">传送阵可以将你传送回地下室...</div>` + centerLine() + `<span style="color:#6688ff;cursor:pointer;" onclick="teleportToBasement()">🌀传送回地下室</span>` + centerLine() + `<div style="color:#aaa;cursor:pointer;" onclick="clearDetailPanel()">↩️返回</div>`; UI.setDetail(html); } currentPanel = 'teleport_menu'; if (typeof StoryEngine !== 'undefined') { StoryEngine.markConditionProgress('use_item', 'teleport_circle'); } }
 
 function teleportToMod(modRoomId) { clearDetailPanel(); currentPanel = null; UI.setOverlay(true); print(`<span style="color:#6688ff;">你踏入传送阵，符文爆发出耀眼的蓝色光芒...</span>`); setTimeout(() => { gameState.player.location = modRoomId; UI.setOverlay(false); look(); updateMinimap(); updateSceneInfo(); }, 2000); }
 function teleportToBasement() { clearDetailPanel(); currentPanel = null; UI.setOverlay(true); print(`<span style="color:#6688ff;">你踏入传送阵...</span>`); setTimeout(() => { gameState.player.location = 'basement'; UI.setOverlay(false); look(); updateMinimap(); updateSceneInfo(); }, 2000); }
 
-function searchWardrobe(itemId) {
-    const available = ["water","mint","oil","salt","star_anise","cinnamon","wild_pepper","vinegar","rosemary","bay_leaf","soy_sauce","black_pepper","olive_oil","ginger","scallion","honey","gelatin_sheet","rose_petal","sugar","egg","milk","vanilla_bean","osmanthus","cherry","cream","nutmeg","butter","cheese","red_date","apple_wood_chips","kelp","lettuce","lemon_juice","wasabi_paste","perilla_leaf","thyme","parsley"];
-    const numItems = Math.floor(Math.random() * 6) + 1; let foundItems = [];
-    for (let i = 0; i < numItems; i++) foundItems.push(available[Math.floor(Math.random() * available.length)]);
-    foundItems.forEach(id => { const item = createItemFromTemplate(id); if (item) gameState.player.inventory.push(item); });
-    print("你在壁橱里翻找了一番，找到了："); foundItems.forEach(id => { const info = getItemInfoById(id); if (info) print(`- ${info.name}`); });
-    clearDetailPanel(); updateSceneInfo();
-}
-
-// ==================== 占位函数（烹饪/锻造保留在 game.js） ====================
-// useStove, showCookingMenuByType, startCookingProcess, completeCooking,
-// WORKBENCH_RECIPES, useWorkbench, showWorkbenchCategory, startCraftingProcess,
-// showCustomCookingMode, createCustomDish
-// 以上函数保留在 game.js 中，因为太复杂暂不移至独立模块
+function searchWardrobe(itemId) { const available = ["water","mint","oil","salt","star_anise","cinnamon","wild_pepper","vinegar","rosemary","bay_leaf","soy_sauce","black_pepper","olive_oil","ginger","scallion","honey","gelatin_sheet","rose_petal","sugar","egg","milk","vanilla_bean","osmanthus","cherry","cream","nutmeg","butter","cheese","red_date","apple_wood_chips","kelp","lettuce","lemon_juice","wasabi_paste","perilla_leaf","thyme","parsley"]; const numItems = Math.floor(Math.random() * 6) + 1; let foundItems = []; for (let i = 0; i < numItems; i++) foundItems.push(available[Math.floor(Math.random() * available.length)]); foundItems.forEach(id => { const item = createItemFromTemplate(id); if (item) gameState.player.inventory.push(item); }); print("你在壁橱里翻找了一番，找到了："); foundItems.forEach(id => { const info = getItemInfoById(id); if (info) print(`- ${info.name}`); }); clearDetailPanel(); updateSceneInfo(); }

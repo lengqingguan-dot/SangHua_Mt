@@ -25,6 +25,15 @@ const WORKBENCH_RECIPES = {
     }
 };
 
+// ★ 辅助：检查物品ID是否匹配材料（支持动态ID如 liana_leg_178xxxx_abc123）
+function itemMatchesMaterial(item, materialId) {
+    if (!item || !item.id) return false;
+    if (item.id === materialId) return true;
+    // 动态ID：liana_leg_178xxxx → 匹配 liana_leg
+    if (item.id.startsWith(materialId + '_')) return true;
+    return false;
+}
+
 function useWorkbench(workbenchId) {
     if (!gameState.world[gameState.player.location]?.items?.includes(workbenchId)) { print("工作台已不存在。"); return; }
     let html = makeTitle('🔨 锻造菜单') + `<div style="color:#888;">请选择要制作的类型：</div>` + centerLine();
@@ -39,7 +48,11 @@ function showWorkbenchCategory(category) {
     let html = makeTitle(`🔨 ${cat.name}`) + centerLine();
     cat.items.forEach(recipe => {
         let hasAll = true;
-        const matStatus = recipe.materialIds.map(mat => { const count = player.inventory.filter(i => i?.id === mat.id).length; const ok = count >= mat.count; if (!ok) hasAll = false; return { name: getItemInfoById(mat.id)?.name || mat.id, need: mat.count, have: count, ok }; });
+        const matStatus = recipe.materialIds.map(mat => {
+            const count = player.inventory.filter(i => itemMatchesMaterial(i, mat.id)).length;
+            const ok = count >= mat.count; if (!ok) hasAll = false;
+            return { name: getItemInfoById(mat.id)?.name || mat.id, need: mat.count, have: count, ok };
+        });
         let effectText = recipe.resultEffect || '';
         if (recipe.atk) effectText += ` | 攻击+${recipe.atk}`; if (recipe.def) effectText += ` | 防御+${recipe.def}`; if (recipe.agi) effectText += ` | 灵巧${recipe.agi>0?'+':''}${recipe.agi}`;
         html += `<div style="margin:10px 0;padding:10px;background:#2a2a2a;border-radius:4px;border-left:3px solid ${hasAll?'#88ccff':'#555'};"><div style="color:${hasAll?'#88ccff':'#666'};font-weight:bold;${hasAll?'cursor:pointer;text-decoration:underline':''}" ${hasAll?`onclick="startCraftingProcess('${category}','${recipe.id}')"`:''}>${cat.icon} ${recipe.name}</div><div style="color:#aaa;font-size:12px;">${recipe.desc}</div><div style="color:#66ff66;font-size:11px;">效果：${effectText}</div><div style="font-size:11px;">${matStatus.map(m=>`<span style="color:${m.ok?'#66ff66':'#ff6666'};">${m.ok?'✓':'✗'} ${m.name}×${m.need}(${m.have})</span>`).join(' ')}</div>${hasAll?`<span style="color:#88ccff;cursor:pointer;" onclick="startCraftingProcess('${category}','${recipe.id}')">🔨开始锻造</span>`:`<span style="color:#555;">🔨材料不足</span>`}</div>`;
@@ -54,13 +67,22 @@ function startCraftingProcess(category, recipeId) {
     const player = gameState.player;
     const matIndices = [];
     let missing = [];
-    recipe.materialIds.forEach(mat => { const found = []; player.inventory.forEach((item, i) => { if (item?.id === mat.id && found.length < mat.count) found.push(i); }); matIndices.push(found); if (found.length < mat.count) { const name = getItemInfoById(mat.id)?.name || mat.id; missing.push(`${name}×${mat.count-found.length}`); } });
+    recipe.materialIds.forEach(mat => {
+        const found = [];
+        player.inventory.forEach((item, i) => {
+            if (itemMatchesMaterial(item, mat.id) && found.length < mat.count) found.push(i);
+        });
+        matIndices.push(found);
+        if (found.length < mat.count) {
+            const name = getItemInfoById(mat.id)?.name || mat.id;
+            missing.push(`${name}×${mat.count - found.length}`);
+        }
+    });
     if (missing.length > 0) { print(`<span style="color:#ff6666;">材料不足！缺少：${missing.join('、')}</span>`); return; }
     matIndices.forEach(indices => indices.sort((a, b) => b - a).forEach(idx => player.inventory.splice(idx, 1)));
     clearDetailPanel(); currentPanel = null;
     print(`<span style="color:#88ccff;">你站在工作台前，拿起铁锤和铁钳...</span>`);
 
-    // 如果有 resultTemplate，从 ITEM_TEMPLATES 深拷贝创建
     if (recipe.resultTemplate) {
         const template = ITEM_TEMPLATES[recipe.resultTemplate];
         if (template) {
