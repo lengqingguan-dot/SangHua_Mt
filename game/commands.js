@@ -130,7 +130,7 @@ function teleport(roomNumber) {
     }
 
     gameState.player.location = roomId;
-    clearOutput();
+    print("");
     print(`<span style="color: #aaffaa;">[开发者模式] 传送到房间 #${roomNumber}: ${gameState.world[roomId].name}</span>`);
     print("");
     look();

@@ -6,12 +6,7 @@ function useCorpse(itemId) {
     const item = findItemById(itemId);
     if (!item) { print("该物品不在行囊中，无法使用。"); return; }
     clearDetailPanel(); currentPanel = null; print(""); print(`你靠近了「${item.name}」...`);
-    const story = item.corpseStory;
-    if (!story || story.length === 0) { print(`<span style="color:#888;">没有特别的事情发生。</span>`); return; }
-    UI.setOverlay(true);
-    let i = 0;
-    function showNext() { if (i < story.length) { print("<br>"); print(`<span style="color:#c444ff;">${story[i]}</span>`); i++; showNextBtn(showNext); } else { hideNextBtn(); UI.setOverlay(false); print(`<span style="color:#888;">互动结束...</span>`); } }
-    showNext();
+    _playCorpseStory(item, '#c444ff');
 }
 
 function useCorpseOnGround(itemId) {
@@ -20,32 +15,38 @@ function useCorpseOnGround(itemId) {
     const item = getItemInfoById(itemId);
     if (!item) { print("找不到该尸体信息。"); return; }
     clearDetailPanel(); currentPanel = null; print(""); print(`你靠近了地上的「${item.name}」...`);
+    _playCorpseStory(item, '#ff66aa');
+}
+
+function _playCorpseStory(item, color) {
     const story = item.corpseStory;
     if (!story || story.length === 0) { print(`<span style="color:#888;">没有特别的事情发生。</span>`); return; }
-    UI.setOverlay(true);
-    let i = 0;
-    function showNext() { if (i < story.length) { print("<br>"); print(`<span style="color:#ff66aa;">${story[i]}</span>`); i++; showNextBtn(showNext); } else { hideNextBtn(); UI.setOverlay(false); print(`<span style="color:#888;">互动结束...</span>`); } }
-    showNext();
+    StoryEngine.playLines({
+        lines: story, color: color, useNextBtn: true,
+        onEachLine: () => { print("<br>"); },
+        onComplete: () => { print(`<span style="color:#888;">互动结束...</span>`); }
+    });
+}
+
+function _lootCorpseCore(item, source) {
+    const prefix = source === 'ground' ? '你搜刮了' : '你搜刮了行囊里的';
+    clearDetailPanel(); currentPanel = null; print("");
+    print(`${prefix}「${item.name}」，获得了：`);
+    item.loot.forEach(lootId => { const loot = createItemFromTemplate(lootId); if (loot) { gameState.player.inventory.push(loot); print(`✨ ${loot.name}`); } });
+    item.loot = []; print(`「${item.name}」已被搜刮完毕。`);
+    if (source === 'ground') updateSceneInfo(); else showInventoryPanel();
 }
 
 function lootCorpse(itemId) {
     const item = ITEM_TEMPLATES[itemId];
     if (!item || !item.loot || item.loot.length === 0) { print("这具尸体已经被搜刮过了。"); return; }
-    clearDetailPanel(); currentPanel = null; print("");
-    print(`你搜刮了「${item.name}」，获得了：`);
-    item.loot.forEach(lootId => { const loot = createItemFromTemplate(lootId); if (loot) { gameState.player.inventory.push(loot); print(`✨ ${loot.name}`); } });
-    item.loot = []; print(`「${item.name}」已被搜刮完毕。`);
-    updateSceneInfo();
+    _lootCorpseCore(item, 'ground');
 }
 
 function lootCorpseFromInventory(itemId) {
     const item = findItemById(itemId);
     if (!item || !item.loot || item.loot.length === 0) { print("这具尸体已经被搜刮过了。"); return; }
-    clearDetailPanel(); currentPanel = null; print("");
-    print(`你搜刮了行囊里的「${item.name}」，获得了：`);
-    item.loot.forEach(lootId => { const loot = createItemFromTemplate(lootId); if (loot) { gameState.player.inventory.push(loot); print(`✨ ${loot.name}`); } });
-    item.loot = []; print(`「${item.name}」已被搜刮完毕。`);
-    showInventoryPanel();
+    _lootCorpseCore(item, 'inventory');
 }
 
 function getLimbTemplatesForCorpse(corpseId) {
@@ -139,9 +140,12 @@ function useLimb(itemId) {
     if (!item) { print("该物品不在行囊中，无法使用。"); return; }
     clearDetailPanel(); currentPanel = null; print(""); print(`你仔细端详着「${item.name}」...`);
     if (item.story && item.story.length > 0) {
-        UI.setOverlay(true);
-        let i = 0;
-        function showNext() { if (i < item.story.length) { print("<br>"); print(`<span style="color:#ff4486;">${item.story[i]}</span>`); i++; showNextBtn(showNext); } else { hideNextBtn(); UI.setOverlay(false); if (item.onUseDestroy) { const inv = gameState.player.inventory; const idx = inv.indexOf(item); if (idx !== -1) { inv.splice(idx, 1); print(`<span style="color:#ff6b6b;">「${item.name}」已损毁。</span>`); } if (item.onUseSpawn) item.onUseSpawn.forEach(spawnId => { const spawned = createItemFromTemplate(spawnId); if (spawned) { inv.push(spawned); print(`<span style="color:#aaffaa;">✨获得了「${spawned.name}」</span>`); } }); showInventoryPanel(); } } }
-        showNext();
+        StoryEngine.playLines({
+            lines: item.story, color: '#ff4486', useNextBtn: true,
+            onEachLine: () => { print("<br>"); },
+            onComplete: () => {
+                if (item.onUseDestroy) { const inv = gameState.player.inventory; const idx = inv.indexOf(item); if (idx !== -1) { inv.splice(idx, 1); print(`<span style="color:#ff6b6b;">「${item.name}」已损毁。</span>`); } if (item.onUseSpawn) item.onUseSpawn.forEach(spawnId => { const spawned = createItemFromTemplate(spawnId); if (spawned) { inv.push(spawned); print(`<span style="color:#aaffaa;">✨获得了「${spawned.name}」</span>`); } }); showInventoryPanel(); }
+            }
+        });
     } else { print(`<span style="color:#888;">【暂无剧情内容】</span>`); }
 }

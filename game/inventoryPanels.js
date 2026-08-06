@@ -76,7 +76,7 @@ function equipItemFromDetail(itemId) { const index = gameState.player.inventory.
 
 function useItemFromDetail(itemId) { if (itemId === 'sanghuashan_mine') { return; } const item = findItemById(itemId); if (!item) return; if (item.type === 'consumable' && item.effect === 'heal') { gameState.player.hp = Math.min(gameState.player.maxHp, gameState.player.hp + (item.value || 10)); print(`你使用了「${item.name}」，恢复了${item.value||10}点生命。`); removeItemFromInventory(itemId); } else if (['maxHp','atk','def','agi','all'].includes(item.effect)) { const p = gameState.player; switch (item.effect) { case 'maxHp': p.maxHp += item.value; p.hp += item.value; break; case 'atk': p.atk += item.value; break; case 'def': p.def += item.value; break; case 'agi': p.agi += item.value; break; case 'all': p.maxHp += item.value; p.hp += item.value; p.atk += item.value; p.def += item.value; p.agi += item.value; break; } print(`你食用了「${item.name}」，${item.effect==='all'?'所有属性':''}永久提升${item.value}点！`); removeItemFromInventory(itemId); } else { print(`你使用了「${item.name}」，但没什么效果。`); } clearDetailPanel(); showInventoryPanel(); }
 
-function readItemFromDetail(itemId) { const item = findItemById(itemId); if (!item) return; clearDetailPanel(); currentPanel = null; if (item.content && Array.isArray(item.content)) { UI.setOverlay(true); print(`你打开「${item.name}」……`); print("<br>"); let lineIndex = 0; function showNext() { if (lineIndex < item.content.length) { print(`<span style="color:#ffdd44;">${item.content[lineIndex]}</span>`); lineIndex++; showNextBtn(showNext); } else { hideNextBtn(); UI.setOverlay(false); print("────────────────"); if (!gameState.gameFlags) gameState.gameFlags = {}; gameState.gameFlags[`read_${itemId}`] = true; if (typeof StoryEngine !== 'undefined') { StoryEngine.markConditionProgress('read_item', itemId); } } } showNext(); } }
+function readItemFromDetail(itemId) { const item = findItemById(itemId); if (!item) return; clearDetailPanel(); currentPanel = null; if (item.content && Array.isArray(item.content)) { print(`你打开「${item.name}」……`); print("<br>"); if (typeof StoryEngine !== 'undefined') { StoryEngine.playLines({ lines: item.content, color: '#ffdd44', useNextBtn: true, addLineBreaks: false, onComplete: () => { print("────────────────"); if (!gameState.gameFlags) gameState.gameFlags = {}; gameState.gameFlags[`read_${itemId}`] = true; StoryEngine.markConditionProgress('read_item', itemId); } }); } } }
 
 function showEquipmentPanel() { if (currentPanel === 'equipment') { clearDetailPanel(); currentPanel = null; return; } let html = makeTitle('当前装备'); ['weapon','armor','accessory'].forEach(slot => { const item = gameState.player.equipment[slot]; const equipName = item ? (item.rarity ? getEquipmentDisplayName(item) : item.name) : ''; html += item ? `🔸${slot}:<span style="text-decoration:underline;cursor:pointer;" onclick="examineEquippedItem('${slot}')">${equipName}</span>\n` : `🔸${slot}:<span style="color:#888;">（空）</span>\n`; }); html += centerLine() + `⚔️总攻击:${getCharacterAttack(gameState.player)} | 🛡️总防御:${getCharacterDefense(gameState.player)} | 💨总灵巧:${getCharacterAgility(gameState.player)}` + centerLine() + `<div style="text-align:center;"><span style="color:#aaa;cursor:pointer;" onclick="showEquipmentPanel()">↩️ 关闭</span></div>`; UI.setDetail(html); currentPanel = 'equipment'; }
 
@@ -104,21 +104,16 @@ function replayStory(questId, type) {
     const lines = type === 'start' ? story.startStory : story.completeStory;
     if (!lines || lines.length === 0) return;
     clearDetailPanel(); currentPanel = null;
-    print(""); print(`<span style="color: #888;">═══════════════════════════</span>`);
-    UI.setOverlay(true);
-    let lineIndex = 0;
-    function showNext() {
-        if (lineIndex < lines.length) {
-            print(`<span style="color: #ffaa66;">${lines[lineIndex]}</span>`);
-            lineIndex++;
-            showNextBtn(showNext);
-        } else {
-            hideNextBtn();
+    print("");
+    print(`<span style="color: #888;">═══════════════════════════</span>`);
+    StoryEngine.playLines({
+        lines: lines, color: '#ffaa66', useNextBtn: true,
+        onStart: () => { UI.setOverlay(true); },
+        onComplete: () => {
             print(`<span style="color: #888;">═══════════════════════════</span>`);
             UI.setOverlay(false);
         }
-    }
-    showNext();
+    });
 }
 
 function showInventory() { currentPanel = null; showInventoryPanel(); }

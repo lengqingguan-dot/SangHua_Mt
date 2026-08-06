@@ -194,12 +194,3 @@ function getAllCharacterTemplateIds() {
     return Object.keys(CHARACTER_TEMPLATES);
 }
 
-// 获取角色类型名称
-function getCharacterTypeName(type) {
-    const map = {
-        npc: 'NPC',
-        enemy: '敌人',
-        boss: '首领'
-    };
-    return map[type] || type;
-}

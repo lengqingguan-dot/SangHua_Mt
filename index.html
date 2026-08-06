@@ -268,11 +268,6 @@
             color: #c0d0e0;
             font-size: 14px;
         }
-        .action-buttons {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 10px;
-        }
         .action-buttons button {
             flex: 1;
             background: #1a2632;
@@ -367,10 +362,17 @@
             border-bottom: 1px dashed #5a6a7a;
             padding-bottom: 5px;
         }
+        .room-number-info {
+            text-align: center;
+            color: #ffdd44;
+            font-size: 14px;
+            font-weight: bold;
+            margin-top: 10px;
+        }
         .story-note {
             font-style: italic;
             color: #9aabbb;
-            margin-top: 15px;
+            margin-top: 5px;
             font-size: 13px;
         }
         #block-overlay {
@@ -415,6 +417,26 @@
             background: #3a5a6a;
             border-color: #c0d4e6;
         }
+        #story-skip-btn {
+            display: none;
+            position: fixed;
+            bottom: 120px;
+            right: 60px;
+            background: #4a2a2a;
+            color: #e6d5a8;
+            border: 2px solid #ae7a7a;
+            padding: 10px 24px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            z-index: 1001;
+            border-radius: 6px;
+            transition: all 0.15s ease;
+        }
+        #story-skip-btn:hover {
+            background: #6a3a3a;
+            border-color: #e6c0c0;
+        }
         @media (max-width: 768px) {
             #main-menu {
                 padding: 20px;
@@ -436,6 +458,7 @@
 <body>
     <div id="block-overlay"></div>
     <button id="story-next-btn" onclick="onStoryNextClick()">▶ Next</button>
+    <button id="story-skip-btn" onclick="StoryEngine.skipLines()">▶▶ 跳过</button>
     <div id="main-menu">
         <h1>夜出桑华山</h1>
         <div class="menu-buttons">
@@ -498,6 +521,7 @@
                     </div>
                     <div></div>
                 </div>
+                <div class="room-number-info">当前房间编号：<span id="room-number-display">-</span></div>
                 <div class="story-note">
                     "桑华山的石矿之下，正下着血与仇的隐秘暴雨。"
                 </div>
@@ -507,6 +531,7 @@
     
     <!-- 基础数据层 -->
     <script src="items/items_core.js"></script>
+    <script src="items/items_ingredients.js"></script>
     <script src="items/items_equipment.js"></script>
     <script src="items/items_scene.js"></script>
     <script src="items/items_char_aisha.js"></script>
@@ -531,8 +556,8 @@
     <script src="ui.js"></script>
     <script src="game/battle.js"></script>
     <script src="game/skills.js"></script>
-    <script src="game.js"></script>
     <script src="game/state.js"></script>
+    <script src="game/devTools.js"></script>
     <script src="game/helpers.js"></script>
     <script src="game/story.js"></script>
     <script src="game/storyEngine.js"></script>

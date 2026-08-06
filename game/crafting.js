@@ -83,29 +83,30 @@ function startCraftingProcess(category, recipeId) {
     clearDetailPanel(); currentPanel = null;
     print(`<span style="color:#88ccff;">你站在工作台前，拿起铁锤和铁钳...</span>`);
 
-    if (recipe.resultTemplate) {
-        const template = ITEM_TEMPLATES[recipe.resultTemplate];
-        if (template) {
-            const craftStory = ["你将材料一件件摆放在工作台上。", "炉火重新燃起，铁钳夹住烧红的铁块——", "叮！叮！叮！火星四溅，铁块在锤击下逐渐成形。", "锻造完成了！一件崭新的作品诞生在你的手中。"];
-            let i = 0;
-            function next() {
-                if (i < craftStory.length) { print(`<span style="color:#88ccff;">${craftStory[i]}</span>`); i++; setTimeout(next, 800); }
-                else {
+    const craftStory = ["你将材料一件件摆放在工作台上。", "炉火重新燃起，铁钳夹住烧红的铁块——", "叮！叮！叮！火星四溅，铁块在锤击下逐渐成形。", "锻造完成了！一件崭新的作品诞生在你的手中。"];
+    StoryEngine.playLines({
+        lines: craftStory, color: '#88ccff', lineDelay: 800, requireOverlay: false,
+        onComplete: () => {
+            if (recipe.resultTemplate) {
+                const template = ITEM_TEMPLATES[recipe.resultTemplate];
+                if (template) {
                     const craftedItem = JSON.parse(JSON.stringify(template));
                     craftedItem.id = recipe.id + '_' + Date.now();
                     player.inventory.push(craftedItem);
                     print(`<span style="color:#ffdd44;">🔨获得了「${craftedItem.name}」！</span>`);
-                    updateSceneInfo();
+                    updateSceneInfo(); return;
                 }
             }
-            next();
-            return;
+            const craftedItem = { id: recipe.id + '_' + Date.now(), name: recipe.name, type: recipe.atk ? 'weapon' : (recipe.def ? 'armor' : 'misc'), desc: recipe.desc, usable: true };
+            if (recipe.atk) { craftedItem.atk = recipe.atk; craftedItem.slot = 'weapon'; }
+            if (recipe.def) { craftedItem.def = recipe.def; craftedItem.slot = 'armor'; }
+            if (recipe.agi) craftedItem.agi = recipe.agi;
+            if (recipe.effect) { craftedItem.effect = recipe.effect; craftedItem.value = recipe.value; }
+            player.inventory.push(craftedItem);
+            print(`<span style="color:#ffdd44;">🔨获得了「${recipe.name}」！</span>`);
+            updateSceneInfo();
         }
-    }
-
-    const craftStory = ["你将材料一件件摆放在工作台上。", "炉火重新燃起，铁钳夹住烧红的铁块——", "叮！叮！叮！火星四溅，铁块在锤击下逐渐成形。", "锻造完成了！一件崭新的作品诞生在你的手中。"];
-    let i = 0; function next() { if (i < craftStory.length) { print(`<span style="color:#88ccff;">${craftStory[i]}</span>`); i++; setTimeout(next, 800); } else { const craftedItem = { id: recipe.id + '_' + Date.now(), name: recipe.name, type: recipe.atk ? 'weapon' : (recipe.def ? 'armor' : 'misc'), desc: recipe.desc, usable: true }; if (recipe.atk) { craftedItem.atk = recipe.atk; craftedItem.slot = 'weapon'; } if (recipe.def) { craftedItem.def = recipe.def; craftedItem.slot = 'armor'; } if (recipe.agi) craftedItem.agi = recipe.agi; if (recipe.effect) { craftedItem.effect = recipe.effect; craftedItem.value = recipe.value; } player.inventory.push(craftedItem); print(`<span style="color:#ffdd44;">🔨获得了「${recipe.name}」！</span>`); updateSceneInfo(); } }
-    next();
+    });
 }
 
 // ========== 烹饪系统 ==========

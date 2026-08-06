@@ -61,6 +61,11 @@ function updateMinimap() {
     const centerRoomNameSpan = document.getElementById('current-room-name-on-map');
     if (centerRoomNameSpan) centerRoomNameSpan.textContent = room.name;
 
+    const roomNumSpan = document.getElementById('room-number-display');
+    if (roomNumSpan && room.roomNumber) {
+        roomNumSpan.textContent = '#' + room.roomNumber;
+    }
+
     const exits = room.exits || {};
     const getRoomName = (dir) => {
         const targetId = exits[dir];

@@ -12,6 +12,7 @@ const STORIES = {
     intro_opening: {
         id: 'intro_opening',
         type: 'event',
+        isTitle: true,
         trigger: { type: 'first_enter', room: 'mine_deep', flag: 'firstTimeEntered' },
         story: [
             "序章-夜出桑华山",
@@ -103,6 +104,7 @@ const STORIES = {
     karen_town_arrival: {
         id: 'karen_town_arrival',
         type: 'event',
+        isTitle: true,
         trigger: { type: 'use_item', item: 'karen_town' },
         story: [
             "你向卡伦镇走去...", "",

@@ -71,20 +71,11 @@ function talkToNPCAction(npcId) {
         gameState.talkedNPCs[npcId] = true;
     }
 
-    let lineIndex = 0;
-    function showNext() {
-        if (lineIndex < dialogues.length) {
-            print("<br>");
-            print(`<span style="color: #ff8844;">${dialogues[lineIndex]}</span>`);
-            lineIndex++;
-            showNextBtn(showNext);
-        } else {
-            hideNextBtn();
-            UI.setOverlay(false);
-            StoryEngine.check();
-        }
-    }
-    showNext();
+    StoryEngine.playLines({
+        lines: dialogues, color: '#ff8844', useNextBtn: true,
+        onEachLine: () => { print("<br>"); },
+        onComplete: () => { StoryEngine.check(); }
+    });
 }
 
 // 与NPC进行任务对话
@@ -96,23 +87,8 @@ function talkToNPCQuest(npcId) {
     }
 
     clearDetailPanel(); currentPanel = null;
-    UI.setOverlay(true);
 
-    let lineIndex = 0;
-    function showNext() {
-        if (lineIndex < activeQuest.questDialogue.length) {
-            print("<br>");
-            print(`<span style="color: #ffaa66;">${activeQuest.questDialogue[lineIndex]}</span>`);
-            lineIndex++;
-            showNextBtn(showNext);
-        } else {
-            hideNextBtn();
-            UI.setOverlay(false);
-            StoryEngine.markConditionProgress('quest_talk', npcId);
-            StoryEngine.check();
-        }
-    }
-    showNext();
+    StoryEngine.playQuestDialogue(activeQuest.id);
 }
 
 // 攻击NPC
@@ -155,22 +131,15 @@ function assaultNPC(npcId) {
         const story = npc.assaultStory;
         if (!story || story.length === 0) { print(`<span style="color: #888;">侵犯结束...</span>`); UI.setOverlay(false); return; }
 
-        let lineIndex = 0;
-        function showNext() {
-            if (lineIndex < story.length) {
-                print("<br>");
-                print(`<span style="color: #ff44e3;">${story[lineIndex]}</span>`);
-                lineIndex++;
-                showNextBtn(showNext);
-            } else {
-                hideNextBtn();
-                UI.setOverlay(false);
+        StoryEngine.playLines({
+            lines: story, color: '#ff44e3', useNextBtn: true, requireOverlay: false,
+            onEachLine: () => { print("<br>"); },
+            onComplete: () => {
                 print(`<span style="color: #ff66aa;">侵犯结束...</span>`);
                 if (!gameState.assaultedNPCs) gameState.assaultedNPCs = {};
                 gameState.assaultedNPCs[npcId] = true;
             }
-        }
-        showNext();
+        });
     } else {
         print(`<span style="color: #ff4444;">侵犯失败！${npc.name}挣脱了你的控制！</span>`);
         startBattle(npcId);
@@ -224,13 +193,10 @@ function milkNPC(npcId) {
             "很快，第一股精液被挤压出来——乳白色的液体带着浓烈的雄性气息...",
             "精液量相当丰沛，一股一股地喷溅，榨精器持续工作了十几分钟..."
         ];
-        let lineIndex = 0;
-        function showNext() {
-            if (lineIndex < story.length) {
-                print("<br>"); print(`<span style="color: #ff88cc;">${story[lineIndex]}</span>`);
-                lineIndex++; showNextBtn(showNext);
-            } else {
-                hideNextBtn();
+        StoryEngine.playLines({
+            lines: story, color: '#ff88cc', useNextBtn: true,
+            onEachLine: () => { print("<br>"); },
+            onComplete: () => {
                 const semen = createItemFromTemplate('knight_semen');
                 if (semen) {
                     gameState.player.inventory.push(semen);
@@ -238,8 +204,7 @@ function milkNPC(npcId) {
                 }
                 showInventoryPanel();
             }
-        }
-        showNext();
+        });
     } else {
         print(`目前无法对${npc.name}进行榨精。`);
     }

@@ -7,6 +7,22 @@ function clearOutput() { UI.clearOutput(); }
 function printToDetail(content) { UI.printToDetail(content); }
 function clearDetailPanel() { UI.clearDetail(); }
 
+/** 统一传送后处理：移动到指定房间并刷新所有UI */
+function relocateTo(roomId, options = {}) {
+    const { travelText, travelColor = '#cc9966', delay = 0, callback, skipCheck = false } = options;
+    if (travelText) { print(`<span style="color: ${travelColor};">${travelText}</span>`); print(""); }
+    const doRelocate = () => {
+        gameState.player.location = roomId;
+        if (typeof StoryEngine !== 'undefined' && StoryEngine.loaded && !skipCheck) StoryEngine.check();
+        look();
+        updateMinimap();
+        updateSceneInfo();
+        if (callback) callback();
+    };
+    if (delay > 0) setTimeout(doRelocate, delay);
+    else doRelocate();
+}
+
 function centerLine() {
     return `<div style="border-top: 1px solid #ffffffff;margin:10px 0;"></div>`;
 }

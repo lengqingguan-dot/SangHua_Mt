@@ -21,5 +21,10 @@ function getWorldData() {
         ModLoader.applyToWorld(mergedWorld);
     }
     
+    // 注入房间编号（ROOM_ID_MAP → roomNumber 属性）
+    if (typeof injectRoomNumbers !== 'undefined') {
+        injectRoomNumbers(mergedWorld);
+    }
+    
     return mergedWorld;
 }

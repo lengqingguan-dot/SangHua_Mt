@@ -124,32 +124,15 @@ const StoryEngine = {
     play(id, story) {
         this.completedEvents.push(id);
         if (story.onStart) story.onStart();
-
         if (!story.story || story.story.length === 0) {
             if (story.onComplete) story.onComplete();
             return;
         }
-
-        // 逐行播放剧情文本
-        let lineIndex = 0;
-        const showNextLine = () => {
-            if (lineIndex < story.story.length) {
-                const line = story.story[lineIndex];
-                if (line === "") {
-                    print("");
-                } else if (lineIndex === 0) {
-                    print(`<span style="color: #e6d5a8; font-weight: bold; font-size: 1.8em;">${line}</span>`);
-                } else {
-                    print(`<span style="color: #e6d5a8;">${line}</span>`);
-                }
-                print("");
-                lineIndex++;
-                setTimeout(showNextLine, 1300);
-            } else {
-                if (story.onComplete) story.onComplete();
-            }
-        };
-        showNextLine();
+        this.playLines({
+            lines: story.story, color: '#e6d5a8', isTitle: !!story.isTitle,
+            requireOverlay: false,  // onStart 已处理遮罩
+            onComplete: story.onComplete
+        });
     },
 
     /** 标记特定类型的任务条件完成（用于 use_item/first_talk/interact_with 等） */
@@ -200,21 +183,13 @@ const StoryEngine = {
         this.activeQuests.push(id);
         this.questProgress[id] = {};
 
-        // 播放任务开始剧情（如果有）
         if (story.startStory && story.startStory.length > 0) {
-            UI.setOverlay(true);
-            let lineIndex = 0;
-            const showNextLine = () => {
-                if (lineIndex < story.startStory.length) {
-                    print(`<span style="color: #ffaa66;">${story.startStory[lineIndex]}</span>`);
-                    lineIndex++;
-                    setTimeout(showNextLine, 1300);
-                } else {
-                    UI.setOverlay(false);
+            this.playLines({
+                lines: story.startStory, color: '#ffaa66',
+                onComplete: () => {
                     print(`<span style="color: #ffaa66; font-size: 1.3em; font-weight: bold;">【新任务】${story.name}</span>`);
                 }
-            };
-            showNextLine();
+            });
         } else {
             print(`<span style="color: #ffaa66; font-size: 1.3em; font-weight: bold;">【新任务】${story.name}</span>`);
         }
@@ -323,19 +298,10 @@ const StoryEngine = {
 
         // 播放完成剧情（在任务完成提示之前）
         if (story.completeStory && story.completeStory.length > 0) {
-            UI.setOverlay(true);
-            let lineIndex = 0;
-            const showNextLine = () => {
-                if (lineIndex < story.completeStory.length) {
-                    print(`<span style="color: #ffaa66;">${story.completeStory[lineIndex]}</span>`);
-                    lineIndex++;
-                    showNextBtn(showNextLine);
-                } else {
-                    hideNextBtn();
-                    showCompletionAndRewards();
-                }
-            };
-            showNextLine();
+            this.playLines({
+                lines: story.completeStory, color: '#ffaa66', useNextBtn: true,
+                onComplete: showCompletionAndRewards
+            });
         } else {
             showCompletionAndRewards();
         }
@@ -387,21 +353,89 @@ const StoryEngine = {
     playQuestDialogue(questId) {
         const story = this.registry.get(questId);
         if (!story || !story.questDialogue) return false;
+        this.playLines({
+            lines: story.questDialogue, color: '#ff8844', useNextBtn: true,
+            onComplete: () => { this.markConditionProgress('quest_talk', story.questNpc); }
+        });
+        return true;
+    },
 
-        UI.setOverlay(true);
-        let lineIndex = 0;
-        const showNextLine = () => {
-            if (lineIndex < story.questDialogue.length) {
-                print(`<span style="color: #ff8844;">${story.questDialogue[lineIndex]}</span>`);
-                lineIndex++;
-                setTimeout(showNextLine, 1300);
+    // ==================== 逐行打印通用方法 ====================
+
+    _currentPlayLines: null,
+
+    /** 跳过当前剧情播放，直接显示剩余全部文本 */
+    skipLines() {
+        const ctx = this._currentPlayLines;
+        if (!ctx) return;
+        const { lines, color, isTitle, addLineBreaks, onEachLine, onComplete,
+                useNextBtn, requireOverlay } = ctx;
+        const startIdx = ctx.index;
+        ctx.index = lines.length;  // ★ 阻止排队的 setTimeout showNext 继续输出
+        // 打印剩余所有行
+        for (let j = startIdx; j < lines.length; j++) {
+            const line = lines[j];
+            if (line === "") print("");
+            else if (j === 0 && isTitle) print(`<span style="color: ${color}; font-weight: bold; font-size: 1.8em;">${line}</span>`);
+            else print(`<span style="color: ${color};">${line}</span>`);
+            if (addLineBreaks && line !== "") print("");
+            if (onEachLine) onEachLine(line, j);
+        }
+        // 清理
+        document.getElementById('story-skip-btn').style.display = 'none';
+        if (useNextBtn) hideNextBtn();
+        if (requireOverlay) UI.setOverlay(false);
+        this._currentPlayLines = null;
+        if (onComplete) onComplete();
+    },
+
+    /**
+     * 统一的剧情文本逐行播放器
+     * @param {Object} options
+     * @param {string[]} options.lines - 文本行数组
+     * @param {string} [options.color='#e6d5a8'] - 文本颜色
+     * @param {Function} [options.onStart] - 开始回调
+     * @param {Function} [options.onEachLine] - 每行回调(line, index)
+     * @param {Function} [options.onComplete] - 完成回调
+     * @param {boolean} [options.useNextBtn=false] - 使用Next按钮逐行（否则自动计时）
+     * @param {number} [options.lineDelay=1300] - 自动播放时行间延迟(ms)
+     * @param {boolean} [options.requireOverlay=true] - 是否启用遮罩
+     * @param {boolean} [options.isTitle=false] - 首行是否作为标题样式
+     * @param {boolean} [options.addLineBreaks=true] - 每行后是否自动换行
+     */
+    playLines(options) {
+        const { lines, color = '#e6d5a8', onStart, onEachLine, onComplete,
+                useNextBtn = false, lineDelay = 1300, requireOverlay = true,
+                isTitle = false, addLineBreaks = true } = options;
+        if (!lines || lines.length === 0) { if (onComplete) onComplete(); return; }
+        if (requireOverlay) UI.setOverlay(true);
+        if (onStart) onStart();
+        // 存储上下文以供跳过使用
+        const ctx = { lines, color, isTitle, addLineBreaks, onEachLine, onComplete,
+                      useNextBtn, requireOverlay, index: 0 };
+        this._currentPlayLines = ctx;
+        document.getElementById('story-skip-btn').style.display = 'inline-block';
+        const showNext = () => {
+            ctx.index = (ctx.index || 0);
+            if (ctx.index < lines.length) {
+                const line = lines[ctx.index];
+                if (line === "") print("");
+                else if (ctx.index === 0 && isTitle) print(`<span style="color: ${color}; font-weight: bold; font-size: 1.8em;">${line}</span>`);
+                else print(`<span style="color: ${color};">${line}</span>`);
+                if (addLineBreaks && line !== "") print("");
+                if (onEachLine) onEachLine(line, ctx.index);
+                ctx.index++;
+                if (useNextBtn) showNextBtn(showNext);
+                else setTimeout(showNext, lineDelay);
             } else {
-                UI.setOverlay(false);
-                this.markConditionProgress('quest_talk', story.questNpc);
+                document.getElementById('story-skip-btn').style.display = 'none';
+                if (useNextBtn) hideNextBtn();
+                if (requireOverlay) UI.setOverlay(false);
+                this._currentPlayLines = null;
+                if (onComplete) onComplete();
             }
         };
-        showNextLine();
-        return true;
+        showNext();
     },
 
     // ==================== 内部辅助方法 ====================
