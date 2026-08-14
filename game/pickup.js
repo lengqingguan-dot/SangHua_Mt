@@ -2,11 +2,12 @@
 //  game/pickup.js - 物品拾取/丢弃系统
 // ============================================================
 
-function countSameItemsOnGround(itemName) {
+function countSameItemsOnGround(item) {
     const room = gameState.world[gameState.player.location];
     if (!room || !room.items) return 0;
+    const key = getItemStackKey(item);
     let count = 0;
-    room.items.forEach(id => { const item = getItemInfoById(id); if (item && item.name === itemName) count++; });
+    room.items.forEach(id => { const it = getItemInfoById(id); if (it && getItemStackKey(it) === key) count++; });
     return count;
 }
 
@@ -85,17 +86,20 @@ function pickupAllItems() {
     StoryEngine.check();
 }
 
-function pickupAllSameItems(itemName) {
+function pickupAllSameItems(itemId) {
     const room = gameState.world[gameState.player.location];
     if (!room || !room.items) { print("无法拾取。"); return; }
+    const ref = getItemInfoById(itemId);
+    if (!ref) return;
+    const key = getItemStackKey(ref);
     let count = 0;
     const itemsToPickup = [];
-    room.items.forEach(id => { const item = getItemInfoById(id); if (item && item.name === itemName && !isItemUnpickable(item)) itemsToPickup.push(id); });
-    itemsToPickup.forEach(itemId => {
-        const index = room.items.indexOf(itemId);
-        if (index !== -1) { const item = getItemInfoById(itemId); if (item) { room.items.splice(index, 1); gameState.player.inventory.push(item); count++; } }
+    room.items.forEach(id => { const item = getItemInfoById(id); if (item && getItemStackKey(item) === key && !isItemUnpickable(item)) itemsToPickup.push(id); });
+    itemsToPickup.forEach(id => {
+        const index = room.items.indexOf(id);
+        if (index !== -1) { const item = getItemInfoById(id); if (item) { room.items.splice(index, 1); gameState.player.inventory.push(item); count++; } }
     });
-    if (count > 0) { print(`<span style="color: #aaffaa;">你拾取了 ${count} 个「${itemName}」。</span>`); updateSceneInfo(); showInventoryPanel(); }
+    if (count > 0) { print(`<span style="color: #aaffaa;">你拾取了 ${count} 个「${ref.name}」。</span>`); updateSceneInfo(); showInventoryPanel(); }
     else print("没有找到该物品。");
 }
 

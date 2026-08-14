@@ -56,6 +56,29 @@ function getLimbTemplatesForCorpse(corpseId) {
     return sorted.length > 0 ? sorted[0][1].limbTemplates : [];
 }
 
+// 取得某尸体使用的肢解模板（优先尸体自带的 limbTemplates）
+function _getCorpseLimbTemplates(corpse) {
+    if (corpse && corpse.limbTemplates && corpse.limbTemplates.length > 0) return corpse.limbTemplates;
+    return getLimbTemplatesForCorpse(corpse ? corpse.id : '');
+}
+
+function _deepClone(o) {
+    if (!o) return o;
+    if (typeof structuredClone === 'function') return structuredClone(o);
+    return JSON.parse(JSON.stringify(o));
+}
+
+// 制造一个肢体物品：优先取尸体预生成的肢体（generatedLimbs），否则走模板
+function _makeLimbItem(corpse, limbId, occurrence) {
+    if (corpse && corpse.generatedLimbs) {
+        const arr = corpse.generatedLimbs[limbId];
+        if (arr && arr[occurrence]) return _deepClone(arr[occurrence]);
+        if (arr && arr[0]) return _deepClone(arr[0]);
+        return null;
+    }
+    return createItemFromTemplate(limbId);
+}
+
 function dismemberCorpseFromInventory(corpseId) {
     const inv = gameState.player.inventory; const index = inv.findIndex(item => item.id === corpseId);
     if (index === -1) { print("该尸体不在行囊中。"); return; }
@@ -63,7 +86,7 @@ function dismemberCorpseFromInventory(corpseId) {
     if (!corpse.dismemberable) { print("这具尸体无法被肢解。"); return; }
     if (corpse.loot && corpse.loot.length > 0) { print(`搜刮`); corpse.loot.forEach(id => { const it = createItemFromTemplate(id); if (it) { inv.push(it); print(`✨ ${it.name}`); } }); corpse.loot = []; print(""); }
     clearDetailPanel();
-    const limbTemplates = getLimbTemplatesForCorpse(corpseId);
+    const limbTemplates = _getCorpseLimbTemplates(corpse);
     if (!corpse.dismemberedLimbs || !limbTemplates.every(limb => corpse.dismemberedLimbs.includes(limb.id)))
         showDismemberPanel(corpse.name, limbTemplates, corpse, 'inventory');
     else print("这具尸体已经没有可以肢解的部位了。");
@@ -73,7 +96,7 @@ function dismemberItem(itemId) {
     const item = ITEM_TEMPLATES[itemId]; if (!item) { print("该物品已不存在。"); return; }
     if (item.loot && item.loot.length > 0) { print(`搜刮`); item.loot.forEach(id => { const it = createItemFromTemplate(id); if (it) gameState.player.inventory.push(it); }); item.loot = []; print(""); }
     clearDetailPanel();
-    const limbTemplates = getLimbTemplatesForCorpse(itemId);
+    const limbTemplates = _getCorpseLimbTemplates(item);
     if (!item.dismemberedLimbs || !limbTemplates.every(limb => item.dismemberedLimbs.includes(limb.id)))
         showDismemberPanel(item.name, limbTemplates, item, 'ground');
     else print("这具尸体已经没有可以肢解的部位了。");
@@ -102,7 +125,13 @@ function cancelDismember() { clearDetailPanel(); showInventoryPanel(); }
 
 function confirmDismember(corpseName, limbTemplates) {
     const selectedLimbs = []; const selectedIds = [];
-    limbTemplates.forEach((limb, i) => { const cb = document.getElementById(`limb_check_${i}`); if (cb && cb.checked) { for (let j = 0; j < limb.count; j++) selectedLimbs.push(limb.id); selectedIds.push(limb.id); } });
+    limbTemplates.forEach((limb, i) => {
+        const cb = document.getElementById(`limb_check_${i}`);
+        if (cb && cb.checked) {
+            for (let j = 0; j < limb.count; j++) selectedLimbs.push({ limbId: limb.id, occurrence: j });
+            selectedIds.push(limb.id);
+        }
+    });
     if (selectedLimbs.length === 0) { print("请至少选择一个肢体。"); return; }
     const corpseObj = window.currentDismemberCorpse; const source = window.currentDismemberSource;
     const currentRemaining = corpseObj && corpseObj.dismemberedLimbs ? limbTemplates.filter(l => !corpseObj.dismemberedLimbs.includes(l.id)) : [...limbTemplates];
@@ -112,10 +141,11 @@ function confirmDismember(corpseName, limbTemplates) {
     let idx = 0;
     function spawnNext() {
         if (idx < selectedLimbs.length) {
-            const limbItem = createItemFromTemplate(selectedLimbs[idx]);
+            const sel = selectedLimbs[idx];
+            const limbItem = _makeLimbItem(corpseObj, sel.limbId, sel.occurrence);
             if (limbItem) {
                 if (source === 'inventory') { gameState.player.inventory.push(limbItem); print(`✨ 获得了${limbItem.name}`); }
-                else { const limbId = `${selectedLimbs[idx]}_${Date.now()}_${Math.random().toString(36).substr(2,9)}`; limbItem.id = limbId; const room = gameState.world[gameState.player.location]; if (room && room.items) { room.items.push(limbId); ITEM_TEMPLATES[limbId] = limbItem; } print(`✨ ${limbItem.name}掉落在地上`); }
+                else { const realId = `${sel.limbId}_${Date.now()}_${idx}_${Math.random().toString(36).substr(2,9)}`; limbItem.id = realId; const room = gameState.world[gameState.player.location]; if (room && room.items) { room.items.push(realId); ITEM_TEMPLATES[realId] = limbItem; } print(`✨ ${limbItem.name}掉落在地上`); }
             }
             idx++; setTimeout(spawnNext, 800);
         } else {
@@ -124,8 +154,8 @@ function confirmDismember(corpseName, limbTemplates) {
                 const remainingLimb = limbTemplates.find(l => !corpseObj.dismemberedLimbs.includes(l.id));
                 if (remainingLimb) {
                     print(`<br><span style="color:#ff8866;">尸体只剩下${remainingLimb.name}了...</span>`);
-                    if (source === 'inventory') { const invIdx = gameState.player.inventory.indexOf(corpseObj); if (invIdx !== -1) gameState.player.inventory.splice(invIdx, 1); for (let j = 0; j < remainingLimb.count; j++) { const it = createItemFromTemplate(remainingLimb.id); if (it) gameState.player.inventory.push(it); } }
-                    else { const room = gameState.world[gameState.player.location]; if (room && room.items) { const itemIdx = room.items.indexOf(corpseObj.id); if (itemIdx !== -1) room.items.splice(itemIdx, 1); for (let j = 0; j < remainingLimb.count; j++) { const it = createItemFromTemplate(remainingLimb.id); if (it) { const lid = `${remainingLimb.id}_${Date.now()}_${j}_${Math.random().toString(36).substr(2,9)}`; it.id = lid; room.items.push(lid); ITEM_TEMPLATES[lid] = it; } } } }
+                    if (source === 'inventory') { const invIdx = gameState.player.inventory.indexOf(corpseObj); if (invIdx !== -1) gameState.player.inventory.splice(invIdx, 1); for (let j = 0; j < remainingLimb.count; j++) { const it = _makeLimbItem(corpseObj, remainingLimb.id, j); if (it) gameState.player.inventory.push(it); } }
+                    else { const room = gameState.world[gameState.player.location]; if (room && room.items) { const itemIdx = room.items.indexOf(corpseObj.id); if (itemIdx !== -1) room.items.splice(itemIdx, 1); for (let j = 0; j < remainingLimb.count; j++) { const it = _makeLimbItem(corpseObj, remainingLimb.id, j); if (it) { const lid = `${remainingLimb.id}_${Date.now()}_${j}_${Math.random().toString(36).substr(2,9)}`; it.id = lid; room.items.push(lid); ITEM_TEMPLATES[lid] = it; } } } }
                 }
             }
             UI.setOverlay(false);

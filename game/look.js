@@ -51,6 +51,15 @@ function showRoomInfo(room) {
     StoryEngine.check();
 }
 
+function enterChurchPorch() {
+    clearDetailPanel();
+    currentPanel = null;
+    print("");
+    print(`<span style="color: #aaffaa;">你推开沉重的木门，踏入了教堂...</span>`);
+    print("");
+    relocateTo("church_porch", { skipCheck: true });
+}
+
 function updateMinimap() {
     const currentLoc = gameState.player.location;
     const room = gameState.world[currentLoc];
@@ -62,8 +71,8 @@ function updateMinimap() {
     if (centerRoomNameSpan) centerRoomNameSpan.textContent = room.name;
 
     const roomNumSpan = document.getElementById('room-number-display');
-    if (roomNumSpan && room.roomNumber) {
-        roomNumSpan.textContent = '#' + room.roomNumber;
+    if (roomNumSpan) {
+        roomNumSpan.textContent = room.roomNumber ? '#' + room.roomNumber : '-';
     }
 
     const exits = room.exits || {};
@@ -121,28 +130,29 @@ function updateSceneInfo() {
     // 地面物品
     let pickupableCount = 0;
     if (room.items && room.items.length > 0) {
-        const nameCountMap = {}, nameItemMap = {}, nameOrder = [], pickupableNames = new Set();
+        const countMap = {}, itemMap = {}, order = [], pickupableKeys = new Set();
 
         room.items.forEach(itemId => {
             const item = getItemInfoById(itemId);
             if (!item) return;
-            const itemName = item.name;
+            const key = getItemStackKey(item);
             const isUnpickupable = isItemUnpickable(itemId);
 
-            if (!isUnpickupable) pickupableNames.add(itemName);
+            if (!isUnpickupable) pickupableKeys.add(key);
 
-            if (nameCountMap[itemName]) { nameCountMap[itemName]++; }
-            else { nameCountMap[itemName] = 1; nameItemMap[itemName] = item; nameOrder.push(itemName); }
+            if (countMap[key]) { countMap[key]++; }
+            else { countMap[key] = 1; itemMap[key] = item; order.push(key); }
         });
 
-        pickupableCount = pickupableNames.size;
+        pickupableCount = pickupableKeys.size;
 
-        nameOrder.forEach(name => {
-            const count = nameCountMap[name];
-            const item = nameItemMap[name];
+        order.forEach(key => {
+            const count = countMap[key];
+            const item = itemMap[key];
             const itemId = item.id;
             const emoji = getItemEmoji(item);
-            const displayName = count > 1 ? `${name}×${count}` : name;
+            const nameHtml = item.type === 'limb' && item.rarity ? getLimbDisplayName(item) : item.name;
+            const displayName = count > 1 ? `${nameHtml}×${count}` : nameHtml;
             const isUnpickupable = item.notPickable || false;
             html += `<div style="margin:5px 0;"><span style="cursor:pointer;color:${isUnpickupable ? '#888' : '#c0d0e0'};" onclick="showGroundItemInfo('${itemId}')">${emoji} ${displayName}</span></div>`;
         });

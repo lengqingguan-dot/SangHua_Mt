@@ -98,6 +98,54 @@ const skills = {
         }
     },
 
+    // ★ 安德罗斯技能：圣光
+    andros_holy_light: {
+        name: "圣光",
+        description: "安德罗斯召唤圣光治愈自身，回复20%最大生命值",
+        cost: 15,
+        npcOnly: true,
+        isHeal: true,
+        effect: function(caster) {
+            const healAmount = Math.floor(caster.maxHp * 0.2);
+            const actualHeal = Math.min(healAmount, caster.maxHp - caster.currentHp);
+            caster.currentHp = Math.min(caster.maxHp, caster.currentHp + healAmount);
+            print(`<span style="color: #ffdd88;">安德罗斯释放了「圣光」！回复了${actualHeal}点生命值！</span>`);
+            return true;
+        }
+    },
+
+    // ★ 安德罗斯技能：神恩
+    andros_divine_blessing: {
+        name: "神恩",
+        description: "安德罗斯获得神之恩赐，三回合内攻击力、防御力、灵巧提升至500",
+        cost: 30,
+        npcOnly: true,
+        isBuff: true,
+        effect: function(caster) {
+            caster.atk = 500;
+            caster.def = 500;
+            caster.agi = 500;
+            caster.divineBlessingTurns = 3;
+            print(`<span style="color: #ffdd44;">安德罗斯释放了「神恩」！攻击力、防御力、灵巧提升至500（持续三回合）！</span>`);
+            return true;
+        }
+    },
+
+    // ★ 曼德罗拉技能：穿喉（先手一击必杀，无视护甲）
+    mandorola_throat: {
+        name: "穿喉",
+        description: "先手时以极快的匕首贯穿咽喉：造成等同对方生命值上限、无视护甲的伤害。",
+        cost: 0,
+        npcOnly: true,
+        isDamage: true,
+        effect: function(caster) {
+            const lethalDamage = gameState.player.maxHp;
+            gameState.player.hp = 0;
+            print(`<span style="color: #ff6666;">曼德罗拉的匕首无声地贯穿了你的咽喉——造成 ${lethalDamage} 点无视护甲的伤害！</span>`);
+            return true;
+        }
+    },
+
     // ★ 莉娅娜技能：真·舍身
     liana_sacrifice: {
         name: "真·舍身",

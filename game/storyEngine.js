@@ -183,15 +183,20 @@ const StoryEngine = {
         this.activeQuests.push(id);
         this.questProgress[id] = {};
 
+        const announce = () => {
+            print(`<span style="color: #ffaa66; font-size: 1.3em; font-weight: bold;">【新任务】${story.name}</span>`);
+            if (story.afterStartStory) story.afterStartStory();
+        };
+
         if (story.startStory && story.startStory.length > 0) {
             this.playLines({
-                lines: story.startStory, color: '#ffaa66',
-                onComplete: () => {
-                    print(`<span style="color: #ffaa66; font-size: 1.3em; font-weight: bold;">【新任务】${story.name}</span>`);
-                }
+                lines: story.startStory, color: story.startStoryColor || '#ffaa66',
+                isTitle: !!story.startStoryIsTitle,
+                onStart: story.startStoryOnStart,
+                onComplete: announce
             });
         } else {
-            print(`<span style="color: #ffaa66; font-size: 1.3em; font-weight: bold;">【新任务】${story.name}</span>`);
+            announce();
         }
     },
 
@@ -294,12 +299,15 @@ const StoryEngine = {
 
             UI.setOverlay(false);
             if (onAllDone) onAllDone();
+            if (story.onComplete) story.onComplete();
         };
 
         // 播放完成剧情（在任务完成提示之前）
         if (story.completeStory && story.completeStory.length > 0) {
+            const useNextBtn = story.completeStoryUseNextBtn !== undefined ? story.completeStoryUseNextBtn : true;
             this.playLines({
-                lines: story.completeStory, color: '#ffaa66', useNextBtn: true,
+                lines: story.completeStory, color: story.completeStoryColor || '#ffaa66', useNextBtn,
+                isTitle: !!story.completeStoryIsTitle,
                 onComplete: showCompletionAndRewards
             });
         } else {
@@ -355,7 +363,13 @@ const StoryEngine = {
         if (!story || !story.questDialogue) return false;
         this.playLines({
             lines: story.questDialogue, color: '#ff8844', useNextBtn: true,
-            onComplete: () => { this.markConditionProgress('quest_talk', story.questNpc); }
+            onComplete: () => {
+                if (typeof story.questDialogueOnComplete === 'function') {
+                    story.questDialogueOnComplete();
+                } else {
+                    this.markConditionProgress('quest_talk', story.questNpc);
+                }
+            }
         });
         return true;
     },
@@ -367,7 +381,8 @@ const StoryEngine = {
     /** 跳过当前剧情播放，直接显示剩余全部文本 */
     skipLines() {
         const ctx = this._currentPlayLines;
-        if (!ctx) return;
+        if (!ctx || ctx._completed) return;
+        ctx._completed = true;
         const { lines, color, isTitle, addLineBreaks, onEachLine, onComplete,
                 useNextBtn, requireOverlay } = ctx;
         const startIdx = ctx.index;
@@ -428,6 +443,8 @@ const StoryEngine = {
                 if (useNextBtn) showNextBtn(showNext);
                 else setTimeout(showNext, lineDelay);
             } else {
+                if (this._currentPlayLines !== ctx || ctx._completed) return;
+                ctx._completed = true;
                 document.getElementById('story-skip-btn').style.display = 'none';
                 if (useNextBtn) hideNextBtn();
                 if (requireOverlay) UI.setOverlay(false);

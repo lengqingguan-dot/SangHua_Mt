@@ -18,8 +18,7 @@ function showNPCInfo(npcId) {
     html += centerLine();
 
     if (npc.canTalk && npc.dialogue) {
-        const genderText = npc.gender === 'female' ? '她' : '他';
-        html += `<div><span style="color: #aaffaa; text-decoration: underline; cursor: pointer;" onclick="talkToNPCAction('${npcId}')">💬 与${genderText}交谈</span></div>`;
+        html += `<div><span style="color: #aaffaa; text-decoration: underline; cursor: pointer;" onclick="talkToNPCAction('${npcId}')">💬 对话</span></div>`;
     }
     if (typeof StoryEngine !== 'undefined') {
         const activeQuest = StoryEngine.findActiveQuestForNpc(npcId);

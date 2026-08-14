@@ -17,6 +17,7 @@ const ITEM_TEMPLATES = {
     mine_gate_key: { id: "mine_gate_key", name: "矿场大门钥匙", type: "important", desc: "一把沉重的铁钥匙。" },
     mine_exit_4_key: { id: "mine_exit_4_key", name: "四号矿井口钥匙", type: "important", desc: "一把沾满血迹的铜钥匙。" },
     mansion_key: { id: "mansion_key", name: "伯爵宅邸钥匙", type: "important", desc: "一把精致的银质钥匙，钥匙柄上雕刻着贵族纹章。" },
+    skull_key: { id: "skull_key", name: "刻有骷髅的钥匙", type: "important", desc: "一把冰冷沉重的铁钥匙，柄端刻着一枚狰狞的骷髅。仿佛能打开某扇不为人知的门。" },
     broken_pickaxe: { id: "broken_pickaxe", name: "折断的镐头", type: "misc", desc: "一柄早已折断的镐头。" },
     tinder: { id: "tinder", name: "火折子", type: "misc", desc: "引火用的竹筒。" },
     rag: { id: "rag", name: "破布", type: "misc", desc: "一块脏兮兮的破布。" },

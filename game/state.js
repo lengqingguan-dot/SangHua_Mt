@@ -36,6 +36,13 @@ function getDefaultGameState() {
             main: [],
             side: []
         },
+        factions: {
+            extinction: { joined: false, renown: 0, level: 1 }
+        },
+        bountyState: {
+            activeBounties: [],
+            lastShownBounties: []
+        },
         gameFlags: {}
     };
 }

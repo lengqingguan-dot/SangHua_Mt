@@ -2,7 +2,8 @@
 let battleState = {
     inBattle: false, enemies: [], currentTurnIndex: 0, turnOrder: [], round: 0,
     hatredUsed: false, vowUsed: false, sacrificeCooldown: 0,
-    lianaVowUsed: false, lianaSacrificeCooldown: 0, originalPlayerStats: null
+    lianaVowUsed: false, lianaSacrificeCooldown: 0, androsBlessingUsed: false,
+    originalPlayerStats: null
 };
 const DEFAULT_BATTLE_STATE = JSON.parse(JSON.stringify(battleState));
 let currentBattleEnemies = {};
@@ -38,7 +39,7 @@ function startMultiBattle(npcIds) {
     print(`<span style="color: #aaffaa;">你 (HP:${gameState.player.hp}/${gameState.player.maxHp} SP:${gameState.player.sp}/${gameState.player.maxSp} ATK:${getCharacterAttack(gameState.player)} DEF:${getCharacterDefense(gameState.player)} AGI:${getCharacterAgility(gameState.player)})</span>`);
     print("────────────────────────────────");
     if (UI.elements.detailPanel) { UI.setDetail(renderSkillButtons()); }
-    battleState = { inBattle: true, enemies, round: 1, currentTurnIndex: 0, turnOrder: [], hatredUsed: false, vowUsed: false, sacrificeCooldown: 0, lianaVowUsed: false, lianaSacrificeCooldown: 0, originalPlayerStats: { atk: gameState.player.atk, def: gameState.player.def, agi: gameState.player.agi } };
+    battleState = { inBattle: true, enemies, round: 1, currentTurnIndex: 0, turnOrder: [], hatredUsed: false, vowUsed: false, sacrificeCooldown: 0, lianaVowUsed: false, lianaSacrificeCooldown: 0, androsBlessingUsed: false, originalPlayerStats: { atk: gameState.player.atk, def: gameState.player.def, agi: gameState.player.agi } };
     setTimeout(() => startNewRound(), 800);
 }
 
@@ -47,6 +48,7 @@ function calculateTurnOrder() { const participants = [{ type: 'player', agi: get
 function startNewRound() {
     if (!battleState.inBattle) return; if (battleState.enemies.filter(e => e.currentHp > 0).length === 0) { battleEnd(true); return; } if (gameState.player.hp <= 0) { battleEnd(false); return; }
     if (battleState.sacrificeCooldown > 0) battleState.sacrificeCooldown--; if (battleState.lianaSacrificeCooldown > 0) battleState.lianaSacrificeCooldown--;
+    battleState.enemies.forEach(enemy => { if (enemy.npcId === 'andros' && enemy.divineBlessingTurns !== undefined && enemy.divineBlessingTurns > 0) { enemy.divineBlessingTurns--; if (enemy.divineBlessingTurns <= 0) { print(`<span style="color: #888;">安德罗斯身上的神恩光芒消散了，属性恢复到原有水平。</span>`); enemy.atk = 10; enemy.def = 10; enemy.agi = 10; } } });
     print(`<span style="color: #ffdd44;">═══════════════════════════</span>`); print(`<span style="color: #ffdd44;">【第${battleState.round}回合】</span>`);
     battleState.turnOrder = calculateTurnOrder(); battleState.currentTurnIndex = 0;
     print(`<span style="color: #888;">行动顺序: ${battleState.turnOrder.map(t => t === 'player' ? '你' : battleState.enemies[t].name).join(' → ')}</span>`); print("");
@@ -70,9 +72,24 @@ function executePlayerTurn() {
 
 function executeEnemyTurn(enemyIndex) {
     if (!battleState.inBattle) return; const enemy = battleState.enemies[enemyIndex]; if (!enemy || enemy.currentHp <= 0) { executeNextTurn(); return; } if (gameState.player.hp <= 0) { battleEnd(false); return; }
+    if (enemy.npcId === 'slum_girl') {
+        // 曼德罗拉：先手时发动「穿喉」，一击必杀、无视护甲
+        if (battleState.turnOrder[0] === enemyIndex) {
+            const throatSkill = skills['mandorola_throat'];
+            print(`<span style="color: #ffaaaa;">→ ${enemy.name} 的回合</span>`);
+            if (throatSkill) throatSkill.effect(enemy);
+            print(`<span style="color: #ff6666;">你倒下了...</span>`);
+            setTimeout(() => battleEnd(false), 1000);
+            return;
+        }
+    }
     if (enemy.npcId === 'liana') {
         if (!battleState.lianaVowUsed) { const vowSkill = skills['liana_vow']; if (vowSkill) { print(`<span style="color: #ffaaaa;">→ ${enemy.name} 的回合</span>`); battleState.lianaVowUsed = true; vowSkill.effect(enemy); updateEnemyStatusDisplay(enemy); setTimeout(() => executeNextTurn(), 1200); return; } }
         if (!battleState.lianaSacrificeCooldown || battleState.lianaSacrificeCooldown <= 0) { const sacSkill = skills['liana_sacrifice']; if (sacSkill) { print(`<span style="color: #ffaaaa;">→ ${enemy.name} 的回合</span>`); sacSkill.effect(enemy); battleState.lianaSacrificeCooldown = sacSkill.cooldown || 3; updateEnemyStatusDisplay(enemy); if (gameState.player.hp <= 0) { setTimeout(() => battleEnd(false), 1000); return; } setTimeout(() => executeNextTurn(), 1200); return; } }
+    }
+    if (enemy.npcId === 'andros') {
+        if (!battleState.androsBlessingUsed) { const blessingSkill = skills['andros_divine_blessing']; if (blessingSkill && enemy.sp >= blessingSkill.cost) { print(`<span style="color: #ffaaaa;">→ ${enemy.name} 的回合</span>`); enemy.sp -= blessingSkill.cost; blessingSkill.effect(enemy); battleState.androsBlessingUsed = true; updateEnemyStatusDisplay(enemy); setTimeout(() => executeNextTurn(), 1200); return; } }
+        if (enemy.currentHp < enemy.maxHp * 0.5 && enemy.sp >= 15) { const healSkill = skills['andros_holy_light']; if (healSkill) { print(`<span style="color: #ffaaaa;">→ ${enemy.name} 的回合</span>`); enemy.sp -= healSkill.cost; healSkill.effect(enemy); updateEnemyStatusDisplay(enemy); setTimeout(() => executeNextTurn(), 1200); return; } }
     }
     const playerDef = getCharacterDefense(gameState.player); const playerAgi = getCharacterAgility(gameState.player);
     print(`<span style="color: #ffaaaa;">→ ${enemy.name} 的回合</span>`); print(`${enemy.name} 向你发起攻击！`);
@@ -95,11 +112,37 @@ function battleEnd(playerWon) {
         battleState.enemies.forEach((enemy, index) => {
             const npc = getCharacterInfo(enemy.npcId); if (!npc) return; defeatedEnemies.push(enemy.npcId);
             if (enemy.npcId === 'serena') { print(`<span style="color: #cc66ff;">"既然如此，就送你个宝贝。"</span>`); print(`<span style="color: #cc66ff;">瑟蕾娜的身躯化为一团紫雾...</span>`); if (enemy.drops?.length > 0 && room) { enemy.drops.forEach((dropId, di) => { const dropItem = createItemFromTemplate(dropId); if (dropItem) { dropItem.id = `drop_${dropId}_${Date.now()}_${di}`; ITEM_TEMPLATES[dropItem.id] = dropItem; if (!room.items) room.items = []; room.items.push(dropItem.id); } }); } totalExp += enemy.exp; return; }
-            const corpseId = `corpse_${enemy.npcId}_${Date.now()}_${index}`; const corpse = createCorpse(enemy.npcId); if (corpse) { corpse.id = corpseId; if (room) { if (!room.items) room.items = []; room.items.push(corpseId); } ITEM_TEMPLATES[corpseId] = corpse; print(`<span style="color: #888;">${enemy.name}的尸体倒在地上...</span>`); } totalExp += enemy.exp;
+            let corpse = null; let corpseId = null;
+            if (enemy.npcId === 'peasant_female') {
+                corpse = (typeof generateGenericFemaleCorpse === 'function') ? generateGenericFemaleCorpse('女贫民') : null;
+                if (corpse) corpseId = corpse.id;
+            } else if (enemy.npcId === 'peasant_male') {
+                corpse = (typeof generatePeasantMaleCorpse === 'function') ? generatePeasantMaleCorpse() : null;
+                if (corpse) corpseId = corpse.id;
+            } else if (enemy.npcId.indexOf('bounty_') === 0) {
+                corpse = (typeof generateGenericFemaleCorpse === 'function') ? generateGenericFemaleCorpse('女贫民') : null;
+                if (corpse) corpseId = corpse.id;
+            } else {
+                corpseId = `corpse_${enemy.npcId}_${Date.now()}_${index}`;
+                corpse = createCorpse(enemy.npcId);
+                if (corpse) { corpse.id = corpseId; ITEM_TEMPLATES[corpseId] = corpse; }
+            }
+            if (corpse) { if (room) { if (!room.items) room.items = []; room.items.push(corpseId); } print(`<span style="color: #888;">${enemy.name}的尸体倒在地上...</span>`); }
+            if (enemy.npcId.indexOf('bounty_') === 0 && typeof completeBountyByNpcId === 'function') {
+                completeBountyByNpcId(enemy.npcId);
+            }
+            totalExp += enemy.exp;
         });
         if (totalExp > 0) { print(""); print(`<span style="color: #ffdd44;">获得 ${totalExp} 点经验值！</span>`); gameState.player.exp += totalExp; checkLevelUp(); }
         if (room?.npcs) defeatedEnemies.forEach(npcId => { const idx = room.npcs.indexOf(npcId); if (idx > -1) room.npcs.splice(idx, 1); });
         updateSceneInfo();
     } else { print(`<span style="color: #ff6666;">【失败...】你被击败了。</span>`); print(`<span style="color: #aaa;">（游戏将重新开始...）</span>`); setTimeout(() => location.reload(), 2000); }
     UI.setOverlay(false); if (UI.elements.detailPanel) UI.clearDetail(); currentPanel = null;
+
+    // ★ 战斗结束回调（供支线任务使用，例如贫民窟分支）
+    if (typeof window._onBattleEnd === 'function') {
+        const cb = window._onBattleEnd;
+        window._onBattleEnd = null;
+        cb(playerWon);
+    }
 }

@@ -2,7 +2,7 @@
 <html lang="zh">
 <head>
     <meta charset="UTF-8">
-    <title>夜出桑华山 · 矿场逃亡</title>
+    <title>夜出桑华山</title>
     <style>
         * {
             box-sizing: border-box;
@@ -397,41 +397,36 @@
             pointer-events: none;
         }
 
-        #story-next-btn {
+        #story-next-btn,
+        #story-skip-btn {
             display: none;
             position: fixed;
-            bottom: 80px;
             right: 60px;
-            background: #2a3a4a;
-            color: #e6d5a8;
-            border: 2px solid #7a9aae;
-            padding: 10px 24px;
+            width: 130px;
+            padding: 10px 0;
             font-size: 16px;
             font-weight: bold;
+            text-align: center;
             cursor: pointer;
             z-index: 1001;
             border-radius: 6px;
             transition: all 0.15s ease;
+        }
+        #story-next-btn {
+            bottom: 80px;
+            background: #2a3a4a;
+            color: #e6d5a8;
+            border: 2px solid #7a9aae;
         }
         #story-next-btn:hover {
             background: #3a5a6a;
             border-color: #c0d4e6;
         }
         #story-skip-btn {
-            display: none;
-            position: fixed;
-            bottom: 120px;
-            right: 60px;
+            bottom: 150px;
             background: #4a2a2a;
             color: #e6d5a8;
             border: 2px solid #ae7a7a;
-            padding: 10px 24px;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            z-index: 1001;
-            border-radius: 6px;
-            transition: all 0.15s ease;
         }
         #story-skip-btn:hover {
             background: #6a3a3a;
@@ -534,6 +529,8 @@
     <script src="items/items_ingredients.js"></script>
     <script src="items/items_equipment.js"></script>
     <script src="items/items_scene.js"></script>
+    <script src="items/items_mara.js"></script>
+    <script src="items/items_generic_female.js"></script>
     <script src="items/items_char_aisha.js"></script>
     <script src="items/items_char_liana.js"></script>
     <script src="items/items_char_cecilia.js"></script>
@@ -552,11 +549,14 @@
     <script src="characters/char_mainNpcs.js"></script>
     <script src="characters/char_hostileNpcs.js"></script>
     <script src="characters/char_generalNpcs.js"></script>
+    <script src="characters/char_slumNpcs.js"></script>
+    <script src="characters/char_bountyNpcs.js"></script>
     <script src="modLoader.js"></script>
     <script src="ui.js"></script>
     <script src="game/battle.js"></script>
     <script src="game/skills.js"></script>
     <script src="game/state.js"></script>
+    <script src="game/bountySystem.js"></script>
     <script src="game/devTools.js"></script>
     <script src="game/helpers.js"></script>
     <script src="game/story.js"></script>
@@ -573,6 +573,7 @@
     <script src="game/corpseSystem.js"></script>
     <script src="game/scenes.js"></script>
     <script src="game/npcSystem.js"></script>
+    <script src="game/quest_slum.js"></script>
     <script src="game/mainMenu.js"></script>
 </body>
 </html>

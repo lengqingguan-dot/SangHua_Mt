@@ -33,6 +33,15 @@ const PORTAL_DEFS = {
     // === 入口类 ===
     wooden_hut:               { targetRoom: "hut_floor1",           travelText: "你推开木门，陈旧的木头气味扑面而来..." },
     hut_door:                 { targetRoom: "cliff",                travelText: "你推开门，清新的空气扑面而来..." },
+    slum_hut:                 { targetRoom: "slum_hut_inside",      travelText: "你掀开破布门帘，猫腰钻进了低矮的窝棚..." },
+    slum_trapdoor:            { targetRoom: "slum_tunnel",          travelText: "你掀开地板下的活板门，跳进了黑暗的地道..." },
+    slum_trapdoor_exit:       { targetRoom: "slum_hut_inside",      travelText: "你推开头顶的活板门，爬回了窝棚..." },
+    iron_gate:                { targetRoom: "dark_hall",            travelText: "你插入刻有骷髅的钥匙，沉重的大铁门发出一声低沉的闷响，缓缓开启...",
+                                requiresKey: "skull_key",            keyFailMsg: "大铁门纹丝不动，中央的骷髅锁孔仿佛在无声地冷笑。你需要刻有骷髅的钥匙。" },
+    peasant_hut_1:            { targetRoom: "peasant_hut_1_inside", travelText: "你掀开破布门帘，猫腰钻进了低矮的窝棚..." },
+    peasant_hut_2:            { targetRoom: "peasant_hut_2_inside", travelText: "你掀开破布门帘，猫腰钻进了低矮的窝棚..." },
+    peasant_hut_3:            { targetRoom: "peasant_hut_3_inside", travelText: "你掀开破布门帘，猫腰钻进了低矮的窝棚..." },
+    peasant_hut_4:            { targetRoom: "peasant_hut_4_inside", travelText: "你掀开破布门帘，猫腰钻进了低矮的窝棚..." },
 
     // === 需要钥匙的传送门 ===
     side_gate_door:           { targetRoom: "forest_start",         travelText: "你使用矿场侧门钥匙打开了铁门...门后是一条通往森林的小路。",
@@ -151,6 +160,70 @@ function useSupervisorLadder() {
         updateMinimap();
         updateSceneInfo();
     }, 1500);
+}
+
+// ★ 离开教堂门廊 → 教堂大门（正门出口）
+function leaveChurchToGate() {
+    clearDetailPanel();
+    currentPanel = null;
+    print("");
+    UI.setOverlay(true);
+    print(`<span style="color: #ddbb88;">你推开教堂厚重的橡木大门，走出教堂...</span>`);
+    setTimeout(() => {
+        gameState.player.location = 'church_gate';
+        UI.setOverlay(false);
+        look();
+        updateMinimap();
+        updateSceneInfo();
+    }, 1200);
+}
+
+// ★ 离开教堂圣坛 → 后门
+function leaveChurchToBackDoor() {
+    clearDetailPanel();
+    currentPanel = null;
+    print("");
+    UI.setOverlay(true);
+    print(`<span style="color: #ddbb88;">你推开圣坛后方的窄门，走了出去...</span>`);
+    setTimeout(() => {
+        gameState.player.location = 'church_back_door';
+        UI.setOverlay(false);
+        look();
+        updateMinimap();
+        updateSceneInfo();
+    }, 1200);
+}
+
+// ★ 从后门进入教堂圣坛
+function enterChurchAltar() {
+    clearDetailPanel();
+    currentPanel = null;
+    print("");
+    UI.setOverlay(true);
+    print(`<span style="color: #ddbb88;">你推开厚重的木门，走入教堂深处...</span>`);
+    setTimeout(() => {
+        gameState.player.location = 'church_altar';
+        UI.setOverlay(false);
+        look();
+        updateMinimap();
+        updateSceneInfo();
+    }, 1200);
+}
+
+// ★ 进入教堂门廊
+function enterChurchPorch() {
+    clearDetailPanel();
+    currentPanel = null;
+    print("");
+    UI.setOverlay(true);
+    print(`<span style="color: #ddbb88;">你推开厚重的橡木门，门轴发出低沉的吱呀声...</span>`);
+    setTimeout(() => {
+        gameState.player.location = 'church_porch';
+        UI.setOverlay(false);
+        look();
+        updateMinimap();
+        updateSceneInfo();
+    }, 1200);
 }
 
 // 撤走的梯子（四号矿道出口↔四号矿井口双向，不消耗）

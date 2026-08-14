@@ -55,6 +55,10 @@ async function saveGame() {
             assaultedNPCs: gameState.assaultedNPCs || {},
             firstTimeEntered: gameState.firstTimeEntered,
 
+            // ★ 持久化势力与悬赏状态
+            factions: gameState.factions || {},
+            bountyState: gameState.bountyState || { activeBounties: [], lastShownBounties: [] },
+
             // ★ 持久化动态创建的物品模板
             dynamicItems: collectDynamicItems(),
 
@@ -110,6 +114,13 @@ async function loadGame() {
         // 恢复游戏状态
         gameState = loaded;
 
+        // 兼容旧存档：补默认势力/悬赏状态
+        if (!gameState.factions) gameState.factions = {};
+        if (!gameState.factions.extinction) gameState.factions.extinction = { joined: false, renown: 0, level: 1 };
+        if (!gameState.bountyState) gameState.bountyState = { activeBounties: [], lastShownBounties: [] };
+        if (!gameState.bountyState.activeBounties) gameState.bountyState.activeBounties = [];
+        if (!gameState.bountyState.lastShownBounties) gameState.bountyState.lastShownBounties = [];
+
         // 重新加载世界数据，确保包含最新的房间定义
         const latestWorld = getWorldData();
         for (const roomId in latestWorld) {
@@ -137,6 +148,12 @@ async function loadGame() {
         waitingForName = false;
         UI.elements.cmdInput.placeholder = "输入命令 (如 look, n, i)...";
         clearOutput();
+
+        // ★ 读档后恢复进行中悬赏的NPC实例
+        if (typeof restoreBountyNpcs === 'function') {
+            restoreBountyNpcs();
+        }
+
         print("📀 记忆复苏，你回到了桑华山的矿道中……");
         look();
         updateMinimap();

@@ -1,9 +1,11 @@
 // ============================================================
-//  items/items_scene.js - 场景交互物品
-//  梯子/楼梯/门/雕像/设施/出口（全部不可拾取）
+//  items/items_scene.js - 场景物品模板
 // ============================================================
 
 Object.assign(ITEM_TEMPLATES, {
+
+    karen_church_door: { id: "karen_church_door", name: "卡伦教堂大门", type: "portal", desc: "一扇沉重的木门，门板上钉着粗大的铁箍和铁钉。门上没有窗户，只有一道细窄的窥视孔。门后隐约传来管风琴的乐声和唱诗班的圣咏。", usable: true, customAction: true, notPickable: true },
+    karen_church_back_door: { id: "karen_church_back_door", name: "卡伦教堂后门", type: "portal", desc: "圣坛后方的窄门，门框上的铜牌刻着「教堂后门」。门缝间透出一丝冷风，似乎通向户外。", usable: true, customAction: true, notPickable: true },
 
     // ========== 梯子类 ==========
     basement_ladder_up: {
@@ -335,6 +337,86 @@ Object.assign(ITEM_TEMPLATES, {
         desc: "一座古老的木屋矗立在悬崖边缘，看起来已经有些年头了。木屋的门虚掩着，似乎可以进入。",
         usable: true,
         customAction: true
+    },
+    slum_hut: {
+        id: "slum_hut",
+        name: "窝棚",
+        type: "portal",
+        desc: "一间低矮破旧的窝棚，木板和破布拼凑成的门虚掩着。里面透出潮湿的霉味，似乎能进去。",
+        usable: true,
+        customAction: true,
+        notPickable: true
+    },
+    slum_trapdoor: {
+        id: "slum_trapdoor",
+        name: "活板门",
+        type: "portal",
+        desc: "地板下的一扇活板门，门板与地面的稻草几乎融为一体。掀开它似乎能通往窝棚下方。",
+        usable: true,
+        customAction: true,
+        notPickable: true
+    },
+    slum_trapdoor_exit: {
+        id: "slum_trapdoor_exit",
+        name: "活板门",
+        type: "portal",
+        desc: "头顶上方的一扇活板门，插着一根粗大的铁栓。推开它就能回到上面的窝棚。",
+        usable: true,
+        customAction: true,
+        notPickable: true
+    },
+    iron_gate: {
+        id: "iron_gate",
+        name: "大铁门",
+        type: "portal",
+        desc: "一扇沉重的大铁门，表面锈迹斑斑，中央嵌着一枚骷髅形状的锁孔。似乎需要一把特殊的钥匙才能打开。",
+        usable: true,
+        customAction: true,
+        notPickable: true
+    },
+    bounty_board: {
+        id: "bounty_board",
+        name: "悬赏板",
+        type: "misc",
+        desc: "一块钉在墙上的木板，上面贴满了写满名字与星级的通缉令。靠近它，你仿佛能闻到一种隐秘而危险的气息。",
+        usable: true,
+        customAction: true,
+        notPickable: true
+    },
+    ruins_burned: {
+        id: "ruins_burned",
+        name: "熄灭的废墟",
+        type: "misc",
+        desc: "一片被烧得焦黑的废墟，只剩下几根歪斜的焦木和坍塌的土墙。灰烬早已冷透，闻不出一丝烟味。",
+        notPickable: true
+    },
+    peasant_hut_1: {
+        id: "peasant_hut_1",
+        name: "窝棚",
+        type: "portal",
+        desc: "一间低矮破旧的窝棚，木板和破布拼凑成的门虚掩着。里面透出潮湿的霉味，似乎能进去。",
+        usable: true, customAction: true, notPickable: true
+    },
+    peasant_hut_2: {
+        id: "peasant_hut_2",
+        name: "窝棚",
+        type: "portal",
+        desc: "一间低矮破旧的窝棚，木板和破布拼凑成的门虚掩着。里面透出潮湿的霉味，似乎能进去。",
+        usable: true, customAction: true, notPickable: true
+    },
+    peasant_hut_3: {
+        id: "peasant_hut_3",
+        name: "窝棚",
+        type: "portal",
+        desc: "一间低矮破旧的窝棚，木板和破布拼凑成的门虚掩着。里面透出潮湿的霉味，似乎能进去。",
+        usable: true, customAction: true, notPickable: true
+    },
+    peasant_hut_4: {
+        id: "peasant_hut_4",
+        name: "窝棚",
+        type: "portal",
+        desc: "一间低矮破旧的窝棚，木板和破布拼凑成的门虚掩着。里面透出潮湿的霉味，似乎能进去。",
+        usable: true, customAction: true, notPickable: true
     },
 
     // ========== 场景出口 ==========

@@ -8,7 +8,7 @@ function showInventoryPanel() {
     html += `<div style="text-align:center;">${generateInventoryCategoryMenu()}</div>`;
     const inv = gameState.player.inventory;
     if (inv.length === 0) { html += `你的行囊空空如也。\n`; }
-    else { inv.forEach(item => { const displayName = item.rarity ? getEquipmentDisplayName(item) : item.name; html += `  ▫️ <span style="text-decoration:underline;cursor:pointer;" onclick="examineItemFromPanel('${item.id}')">${displayName}</span> ${getItemEmoji(item)}\n`; }); }
+    else { inv.forEach(item => { const displayName = getInventoryDisplayName(item); html += `  ▫️ <span style="text-decoration:underline;cursor:pointer;" onclick="examineItemFromPanel('${item.id}')">${displayName}</span> ${getItemEmoji(item)}\n`; }); }
     html += centerLine() + `<div style="text-align:center;"><span style="color:#aaa;cursor:pointer;" onclick="showInventoryPanel()">↩️ 关闭</span></div>`;
     UI.setDetail(html); currentPanel = 'inventory';
 }
@@ -34,7 +34,7 @@ function showInventoryCategory(category) {
         case 'misc': filtered = inv.filter(i => i.type === 'misc' && !i.id.includes('corpse') && !i.story && !i.ingredientType && !i.dismemberable && !i.milkItem); break;
     }
     if (filtered.length === 0) { html += `该分类下没有物品。\n`; }
-    else { filtered.forEach(item => { const displayName = item.rarity ? getEquipmentDisplayName(item) : item.name; html += `  ▫️ <span style="text-decoration:underline;cursor:pointer;" onclick="examineItemFromPanel('${item.id}')">${displayName}</span> ${getItemEmoji(item)}\n`; }); }
+    else { filtered.forEach(item => { const displayName = getInventoryDisplayName(item); html += `  ▫️ <span style="text-decoration:underline;cursor:pointer;" onclick="examineItemFromPanel('${item.id}')">${displayName}</span> ${getItemEmoji(item)}\n`; }); }
     html += centerLine() + `<div style="text-align:center;"><span style="color:#aaa;cursor:pointer;" onclick="showInventoryPanel()">↩️ 返回物品栏</span></div>`;
     UI.setDetail(html); currentPanel = 'inventory';
 }
@@ -43,14 +43,17 @@ function showInventoryAll() {
     let html = makeTitle('行囊物品'); html += `<div style="text-align:center;">${generateInventoryCategoryMenu()}</div>`;
     const inv = gameState.player.inventory;
     if (inv.length === 0) { html += `你的行囊空空如也。\n`; }
-    else { inv.forEach(item => { const displayName = item.rarity ? getEquipmentDisplayName(item) : item.name; html += `  ▫️ <span style="text-decoration:underline;cursor:pointer;" onclick="examineItemFromPanel('${item.id}')">${displayName}</span> ${getItemEmoji(item)}\n`; }); }
+    else { inv.forEach(item => { const displayName = getInventoryDisplayName(item); html += `  ▫️ <span style="text-decoration:underline;cursor:pointer;" onclick="examineItemFromPanel('${item.id}')">${displayName}</span> ${getItemEmoji(item)}\n`; }); }
     html += centerLine() + `<div style="text-align:center;"><span style="color:#aaa;cursor:pointer;" onclick="showInventoryPanel()">↩️ 关闭</span></div>`;
     UI.setDetail(html); currentPanel = 'inventory';
 }
 
 function examineItemFromPanel(itemId) {
     const item = findItemById(itemId); if (!item) { print("物品不存在。"); return; }
-    let html = makeTitle('物品详情') + `名称：${item.name}\n类型：${getItemTypeName(item.type)}\n`;
+    const nameDisplay = getInventoryDisplayName(item);
+    let html = makeTitle('物品详情') + `名称：${nameDisplay}\n类型：${getItemTypeName(item.type)}\n`;
+    if (item.score !== undefined) html += `评分：${item.score}\n`;
+    if (item.rarity) html += `品质：${getQualityName(item.rarity)}\n`;
     if (item.desc) html += `描述：${item.desc}\n`;
     if (item.atk) html += `攻击力：+${item.atk}\n`; if (item.def) html += `防御力：+${item.def}\n`; if (item.agi) html += `灵巧：+${item.agi}\n`;
     if (item.maxHpPercent && item.maxHpPercent < 0) html += `<span style="color:#ff6666;">诅咒：最大生命值${Math.round(item.maxHpPercent*100)}%</span>\n`;
@@ -88,7 +91,45 @@ function showStatusPanel() { if (currentPanel === 'status') { clearDetailPanel()
 
 function showQuestsPanel() { if (currentPanel === 'quests') { clearDetailPanel(); currentPanel = null; return; } showQuestsTab('incomplete'); }
 
-function showQuestsTab(tab) { let html = makeTitle('任务日志') + `<div style="text-align:center;margin-bottom:8px;"><span style="color:${tab==='incomplete'?'#ffaa66':'#888'};cursor:pointer;" onclick="showQuestsTab('incomplete')">未完成</span> | <span style="color:${tab==='completed'?'#66ff66':'#888'};cursor:pointer;" onclick="showQuestsTab('completed')">已完成</span></div>` + centerLine(); const allMainQuests = [], allSideQuests = []; const storyEngineQuests = (typeof StoryEngine !== 'undefined') ? StoryEngine.registry : new Map(); const triggeredQuestIds = new Set((typeof StoryEngine !== 'undefined') ? [...StoryEngine.activeQuests, ...StoryEngine.completedQuests] : []); storyEngineQuests.forEach((story, id) => { if (story.type !== 'main' && story.type !== 'side') return; if (!triggeredQuestIds.has(id)) return; const isCompleted = (typeof StoryEngine !== 'undefined') && StoryEngine.completedQuests.includes(id); if (tab === 'completed' && !isCompleted) return; if (tab === 'incomplete' && isCompleted) return; const questInfo = { id, name: story.name || id, description: story.description || '', type: story.type, startStory: story.startStory || [], completeStory: story.completeStory || [], conditions: story.conditions }; if (story.type === 'main') allMainQuests.push(questInfo); else allSideQuests.push(questInfo); }); const typeStyle = (type) => type === 'main' ? 'color:#ffaa66;' : 'color:#66aaff;'; const typeLabel = (type) => type === 'main' ? '📜' : '📋'; if (allMainQuests.length > 0) { html += `<div style="color:#ffaa66;font-weight:bold;">━━━ 主线任务 ━━━</div>`; allMainQuests.forEach(q => { html += `<div style="margin:4px 0;"><span style="${typeStyle(q.type)}cursor:pointer;text-decoration:underline;" onclick="showQuestDetail('${q.id}','${tab}')">${typeLabel(q.type)} ${q.name}</span></div>`; }); html += '<br>'; } if (allSideQuests.length > 0) { html += `<div style="color:#66aaff;font-weight:bold;">━━━ 支线任务 ━━━</div>`; allSideQuests.forEach(q => { html += `<div style="margin:4px 0;"><span style="${typeStyle(q.type)}cursor:pointer;text-decoration:underline;" onclick="showQuestDetail('${q.id}','${tab}')">${typeLabel(q.type)} ${q.name}</span></div>`; }); } if (allMainQuests.length === 0 && allSideQuests.length === 0) { html += `<div style="color:#888;">${tab === 'completed' ? '暂无已完成任务' : '暂无进行中的任务'}</div>`; } html += centerLine() + `<div style="text-align:center;"><span style="color:#aaa;cursor:pointer;" onclick="showQuestsPanel()">↩️关闭</span></div>`; UI.setDetail(html); currentPanel = 'quests'; }
+function showQuestsTabBar(active) {
+    const t = (id, label, color) => `<span style="color:${active === id ? color : '#888'};cursor:pointer;" onclick="showQuestsTab('${id}')">${label}</span>`;
+    return `<div style="text-align:center;margin-bottom:8px;">${t('incomplete', '未完成', '#ffaa66')} | ${t('completed', '已完成', '#66ff66')} | ${t('faction', '势力任务', '#ff8844')}</div>`;
+}
+
+function showFactionQuestsTab() {
+    const f = (typeof getFaction === 'function') ? getFaction() : null;
+    let html = makeTitle('任务日志') + showQuestsTabBar('faction') + centerLine();
+    if (!f || !f.joined) {
+        html += `<div style="color:#888;">你尚未加入任何势力。</div>\n`;
+        html += centerLine() + `<div style="text-align:center;"><span style="color:#aaa;cursor:pointer;" onclick="showQuestsPanel()">↩️关闭</span></div>`;
+        UI.setDetail(html); currentPanel = 'quests'; return;
+    }
+
+    html += `<div style="text-align:center;color:#c3b38d;">☠️ 势力：灭绝  |  名望：${f.renown || 0}  |  等级：${f.level || 1}</div>\n`;
+    const nextReq = (typeof FACTION_LEVEL_UP_REQUIREMENTS !== 'undefined') ? FACTION_LEVEL_UP_REQUIREMENTS[f.level + 1] : null;
+    if (nextReq) html += `<div style="color:#888;">升到 ${f.level + 1} 级需要名望 ${nextReq}。</div>\n`;
+    else html += `<div style="color:#888;">已达最高等级。</div>\n`;
+    html += centerLine();
+
+    const active = gameState.bountyState && gameState.bountyState.activeBounties ? gameState.bountyState.activeBounties : [];
+    if (active.length === 0) {
+        html += `<div style="color:#888;">当前没有进行中的势力悬赏。</div>\n`;
+    } else {
+        html += `<div style="color:#ffaa66;font-weight:bold;">进行中的悬赏：</div>\n`;
+        active.forEach(b => {
+            const room = gameState.world[b.roomId];
+            const roomName = room ? room.name : '未知';
+            const roomNum = room && room.roomNumber ? ('#' + room.roomNumber + ' ') : '';
+            html += `<div style="margin:4px 0;">⭐${b.stars} ${b.name}　📍 ${roomNum}${roomName}</div>\n`;
+        });
+    }
+
+    html += centerLine() + `<div style="text-align:center;"><span style="color:#aaa;cursor:pointer;" onclick="showQuestsPanel()">↩️关闭</span></div>`;
+    UI.setDetail(html);
+    currentPanel = 'quests';
+}
+
+function showQuestsTab(tab) { if (tab === 'faction') { showFactionQuestsTab(); return; } let html = makeTitle('任务日志') + showQuestsTabBar(tab) + centerLine(); const allMainQuests = [], allSideQuests = []; const storyEngineQuests = (typeof StoryEngine !== 'undefined') ? StoryEngine.registry : new Map(); const triggeredQuestIds = new Set((typeof StoryEngine !== 'undefined') ? [...StoryEngine.activeQuests, ...StoryEngine.completedQuests] : []); storyEngineQuests.forEach((story, id) => { if (story.type !== 'main' && story.type !== 'side') return; if (!triggeredQuestIds.has(id)) return; const isCompleted = (typeof StoryEngine !== 'undefined') && StoryEngine.completedQuests.includes(id); if (tab === 'completed' && !isCompleted) return; if (tab === 'incomplete' && isCompleted) return; const questInfo = { id, name: story.name || id, description: story.description || '', type: story.type, startStory: story.startStory || [], completeStory: story.completeStory || [], conditions: story.conditions }; if (story.type === 'main') allMainQuests.push(questInfo); else allSideQuests.push(questInfo); }); const typeStyle = (type) => type === 'main' ? 'color:#ffaa66;' : 'color:#66aaff;'; const typeLabel = (type) => type === 'main' ? '📜' : '📋'; if (allMainQuests.length > 0) { html += `<div style="color:#ffaa66;font-weight:bold;">━━━ 主线任务 ━━━</div>`; allMainQuests.forEach(q => { html += `<div style="margin:4px 0;"><span style="${typeStyle(q.type)}cursor:pointer;text-decoration:underline;" onclick="showQuestDetail('${q.id}','${tab}')">${typeLabel(q.type)} ${q.name}</span></div>`; }); html += '<br>'; } if (allSideQuests.length > 0) { html += `<div style="color:#66aaff;font-weight:bold;">━━━ 支线任务 ━━━</div>`; allSideQuests.forEach(q => { html += `<div style="margin:4px 0;"><span style="${typeStyle(q.type)}cursor:pointer;text-decoration:underline;" onclick="showQuestDetail('${q.id}','${tab}')">${typeLabel(q.type)} ${q.name}</span></div>`; }); } if (allMainQuests.length === 0 && allSideQuests.length === 0) { html += `<div style="color:#888;">${tab === 'completed' ? '暂无已完成任务' : '暂无进行中的任务'}</div>`; } html += centerLine() + `<div style="text-align:center;"><span style="color:#aaa;cursor:pointer;" onclick="showQuestsPanel()">↩️关闭</span></div>`; UI.setDetail(html); currentPanel = 'quests'; }
 
 function showQuestDetail(questId, tab) { let story; if (typeof StoryEngine !== 'undefined') story = StoryEngine.registry.get(questId); if (!story) { const q = gameState.quests.main.find(q => q.id === questId) || gameState.quests.side.find(q => q.id === questId); if (!q) { UI.setDetail(makeTitle('错误') + '找不到任务信息'); return; } story = { name: q.name, description: q.description, type: 'main' }; } const isCompleted = (typeof StoryEngine !== 'undefined') && StoryEngine.completedQuests.includes(questId); let html = makeTitle(story.name) + `类型：${story.type === 'main' ? '主线任务' : '支线任务'}\n描述：${story.description || '(无)'}\n` + centerLine(); if (isCompleted) { if (story.startStory && story.startStory.length > 0) { html += `<div><span style="color:#ffaa66;text-decoration:underline;cursor:pointer;" onclick="replayStory('${questId}','start')">🎬 播放触发剧情</span></div>` + centerLine(); } if (story.completeStory && story.completeStory.length > 0) { html += `<div><span style="color:#ffaa66;text-decoration:underline;cursor:pointer;" onclick="replayStory('${questId}','complete')">🎬 播放完成剧情</span></div>` + centerLine(); } } if (story.conditions) { html += `<div style="color:#888;font-weight:bold;">完成条件：</div>`; if (story.conditions.type === 'single') html += `<span style="color:#aaa;">${story.conditions.label || story.conditions.condValue}</span>\n`; else if (story.conditions.type === 'composite') story.conditions.subConditions.forEach((cond, i) => { html += `<span style="color:#aaa;">${i+1}. ${cond.label || cond.item || cond.condValue}</span>\n`; }); } html += centerLine() + `<div style="text-align:center;"><span style="color:#aaa;cursor:pointer;" onclick="showQuestsTab('${tab}')">↩️返回任务列表</span></div>`; UI.setDetail(html); currentPanel = 'quest_detail'; }
 

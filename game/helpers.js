@@ -59,7 +59,8 @@ const RARITY_COLORS = {
     good:      '#66cc66',
     rare:      '#6699ff',
     epic:      '#cc66ff',
-    legendary: '#ff8844'
+    legendary: '#ff8844',
+    mythic:    '#ff4040'
 };
 
 const RARITY_NAMES = {
@@ -67,11 +68,50 @@ const RARITY_NAMES = {
     good:      '优良',
     rare:      '稀有',
     epic:      '罕见',
-    legendary: '珍品'
+    legendary: '珍品',
+    mythic:    '神品'
 };
 
 function getRarityColor(rarity) {
     return RARITY_COLORS[rarity] || '#c0c0c0';
+}
+
+function getQualityName(rarity) {
+    return RARITY_NAMES[rarity] || '';
+}
+
+// 评分(0-100) → 品质
+function scoreToQuality(score) {
+    if (score >= 100) return 'mythic';
+    if (score >= 95) return 'legendary';
+    if (score >= 85) return 'epic';
+    if (score >= 70) return 'rare';
+    if (score >= 40) return 'good';
+    return 'normal';
+}
+
+// 肢体显示名：按品质着色，不带前缀标签
+function getLimbDisplayName(item) {
+    if (!item) return '';
+    if (!item.rarity) return item.name;
+    return `<span style="color:${getRarityColor(item.rarity)};">${item.name}</span>`;
+}
+
+// 列表显示名：肢体按品质着色（无前缀），其余沿用装备前缀规则
+function getInventoryDisplayName(item) {
+    if (!item) return '';
+    if (item.type === 'limb') return getLimbDisplayName(item);
+    return item.rarity ? getEquipmentDisplayName(item) : item.name;
+}
+
+// 堆叠键：尸体各自独立；肢体按 名称/品质/评分 区分（避免不同品质或码数罩杯堆叠）
+function getItemStackKey(item) {
+    if (!item) return '';
+    if (item.id && item.id.includes('corpse')) return item.id;
+    if (item.type === 'limb') {
+        return `${item.name}::${item.rarity || 'none'}::${item.score !== undefined ? item.score : 'x'}`;
+    }
+    return item.name;
 }
 
 // ★ 装备显示名：前缀和名称都带品质颜色
