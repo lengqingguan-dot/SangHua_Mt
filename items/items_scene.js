@@ -374,6 +374,182 @@ Object.assign(ITEM_TEMPLATES, {
         customAction: true,
         notPickable: true
     },
+    castle_gate_door: {
+        id: "castle_gate_door",
+        name: "厚重的大门",
+        type: "portal",
+        desc: "伯爵城堡的厚重城门，由整块橡木与铁箍铸成，门面上刻着展翅的山鹰。门扇紧闭，却并未落锁。",
+        usable: true,
+        customAction: true,
+        notPickable: true
+    },
+    castle_gate_door_exit: {
+        id: "castle_gate_door_exit",
+        name: "厚重的大门",
+        type: "portal",
+        desc: "城堡外围西侧通向城门的厚重门扉，从这里可以回到伯爵城堡的大门之外。",
+        usable: true,
+        customAction: true,
+        notPickable: true
+    },
+    castle_spiral_stairs_up: {
+        id: "castle_spiral_stairs_up",
+        name: "旋转楼梯（上行）",
+        type: "portal",
+        desc: "一座紧贴北墙的石砌旋转楼梯，蜿蜒通向城堡二层。",
+        usable: true,
+        customAction: true,
+        notPickable: true
+    },
+    castle_spiral_stairs_down: {
+        id: "castle_spiral_stairs_down",
+        name: "旋转楼梯（下行）",
+        type: "portal",
+        desc: "通往下层的旋转楼梯，从这里可以回到一楼的走廊。",
+        usable: true,
+        customAction: true,
+        notPickable: true
+    },
+    castle_spiral_stairs_2up: {
+        id: "castle_spiral_stairs_2up",
+        name: "旋转楼梯（上行）",
+        type: "portal",
+        desc: "一座石砌旋转楼梯，继续向上盘旋，通往城堡三层。",
+        usable: true,
+        customAction: true,
+        notPickable: true
+    },
+    castle_spiral_stairs_3down: {
+        id: "castle_spiral_stairs_3down",
+        name: "旋转楼梯（下行）",
+        type: "portal",
+        desc: "通往下层二楼的旋转楼梯。",
+        usable: true,
+        customAction: true,
+        notPickable: true
+    },
+    dungeon_door: {
+        id: "dungeon_door",
+        name: "地牢门",
+        type: "portal",
+        desc: "一扇通体漆黑的铁门，门缝间渗出阴冷潮湿的气息。门锁沉重，似乎需要一把特制的地牢钥匙才能开启。",
+        usable: true,
+        customAction: true,
+        notPickable: true
+    },
+    dungeon_exit: {
+        id: "dungeon_exit",
+        name: "地牢门",
+        type: "portal",
+        desc: "身后那扇漆黑铁门通往地牢入口。踩上潮湿的石阶，便能回到来时的走廊。",
+        usable: true,
+        customAction: true,
+        notPickable: true
+    },
+    dungeon_straw_mat: {
+        id: "dungeon_straw_mat",
+        name: "破烂的稻草席",
+        type: "misc",
+        desc: "一张破烂发霉的稻草席，散乱地铺在潮湿的泥地上，边角被虫蛀得千疮百孔。",
+        usable: true,
+        customAction: true,
+        notPickable: true
+    },
+    dungeon_straw_mat_special: {
+        id: "dungeon_straw_mat_special",
+        name: "破烂的稻草席",
+        type: "misc",
+        desc: "这张稻草席与别处并无不同，只是边角似乎被什么东西压得微微翘起。",
+        usable: true,
+        customAction: true,
+        notPickable: true
+    },
+    dungeon_trapdoor: {
+        id: "dungeon_trapdoor",
+        name: "不起眼的活板门",
+        type: "misc",
+        desc: "稻草席被掀开后，地面露出一扇不起眼的活板门，木板与泥地几乎融为一体，不仔细看很难察觉。",
+        usable: true,
+        customAction: true,
+        notPickable: true
+    },
+    strange_mound: {
+        id: "strange_mound",
+        name: "怪异的小土堆",
+        type: "misc",
+        desc: "枯死的橡树底下一座没有碑的小土堆，土面泛潮，一块没刻字的青石压在上面。旁边蔫掉的野花蜷缩成褐色的团。",
+        usable: true,
+        customAction: true,
+        notPickable: true
+    },
+    working_peasants: {
+        id: "working_peasants",
+        name: "劳动的贫民们",
+        type: "misc",
+        desc: "一群贫民正蹲在破棚屋前劳作：铁锤把钉子敲进漏风的木板，粗麻绳一圈圈捆扎着断掉的锄柄。",
+        usable: true,
+        customAction: true,
+        notPickable: true
+    },
+    working_serfs: {
+        id: "working_serfs",
+        name: "劳作的农奴们",
+        type: "misc",
+        desc: "田垄间，农奴们弯着腰挥动镰刀，金黄的麦穗成片倒下，又被捆成一小束一小束。",
+        usable: true,
+        customAction: true,
+        notPickable: true
+    },
+    randolph_family_banner: {
+        id: "randolph_family_banner",
+        name: "兰德尔家族旗帜",
+        type: "misc",
+        desc: "一面蓝底山鹰旗，绣着兰德尔家族的金线纹章。它挂在顶楼的旗杆上，被风撑得笔直。",
+        usable: true,
+        customAction: true,
+        notPickable: true
+    },
+    randolph_family_banner_broken: {
+        id: "randolph_family_banner_broken",
+        name: "被折断的兰德尔家族旗帜",
+        type: "misc",
+        desc: "那面山鹰旗已被折断，旗面撕开一道长口，山鹰纹章耷拉下来，再也立不起来了。",
+        notPickable: true
+    },
+    flag_base: {
+        id: "flag_base",
+        name: "旗帜基座",
+        type: "misc",
+        desc: "折断旗帜后露出的石制基座，插孔空空地张着，等着另一面旗。",
+        usable: true,
+        customAction: true,
+        notPickable: true
+    },
+    red_flag_planted: {
+        id: "red_flag_planted",
+        name: "插在基座上的鲜红旗帜",
+        type: "misc",
+        desc: "那面鲜红的旗帜稳稳插在基座上，红底上金色的镰刀与锤子在风里猎猎作响。",
+        notPickable: true
+    },
+    castle_rooftop_stairs_up: {
+        id: "castle_rooftop_stairs_up",
+        name: "楼梯（上行）",
+        type: "portal",
+        desc: "一段狭窄的石梯，盘旋通向城堡最顶端的顶楼。",
+        usable: true,
+        customAction: true,
+        notPickable: true
+    },
+    castle_rooftop_stairs_down: {
+        id: "castle_rooftop_stairs_down",
+        name: "楼梯（下行）",
+        type: "portal",
+        desc: "从顶楼折返的石梯，通回三楼走廊。",
+        usable: true,
+        customAction: true,
+        notPickable: true
+    },
     bounty_board: {
         id: "bounty_board",
         name: "悬赏板",

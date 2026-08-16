@@ -176,7 +176,7 @@ const WORLD_TEMPLATE_1 = {
         desc: "一座宽大的二层石砌建筑，正门上方悬挂着刻有「卡伦镇驿」的铜匾。\n一楼的马厩里拴着十几匹健壮的驿马，马夫正忙着喂草刷毛。\n院中停着几辆驿车，车夫们三三两两地蹲在车旁闲聊。\n柜台后面坐着一位戴眼镜的老驿丞，正低头整理着厚厚的登记簿。\n墙上贴满了往来的驿路图和时刻表，空气里混合着草料、皮革和马汗的气息。\n西边是回镇子的街道。",
         exits: { west: "square_e5" },
         items: [],
-        npcs: []
+        npcs: ["coachman"]
     },
 
     // ========== 广场北侧街道（3个） ==========
@@ -246,7 +246,164 @@ const WORLD_TEMPLATE_1 = {
         name: "伯爵城堡大门",
         desc: "一座宏伟的城堡矗立在眼前，灰色石墙高耸入云。厚重橡木城门上雕刻着展翅的山鹰，鹰眼镶嵌着两颗幽蓝的宝石，在阳光下泛着冷冽的光芒。城门紧闭，两侧各站着一名全副武装的城堡卫兵。城堡塔楼上的旗帜在风中猎猎作响，仿佛在宣告此地的主人——兰德尔伯爵大人的威严。",
         exits: { west: "castle_road_e2" },
-        items: [], npcs: []
+        items: ["castle_gate_door"],
+        npcs: ["castle_guard_1", "castle_guard_2"]
+    },
+
+    // ========== 伯爵城堡外围 ==========
+    castle_outer: {
+        name: "伯爵城堡外围",
+        desc: "穿过城门，眼前是一片由灰色花岗岩铺就的宽阔庭院。\n四周高耸的城墙围成一方天井，地面被岁月磨得发亮。\n南、北两侧各矗立着一座城楼，城楼上的弩手在垛口间来回巡视。\n东边一扇高大的门扉通向城堡大厅，西边则是来时的城门。",
+        exits: { north: "castle_outer_north_tower", south: "castle_outer_south_tower", east: "castle_hall" },
+        items: ["castle_gate_door_exit"],
+        npcs: []
+    },
+    castle_outer_north_tower: {
+        name: "城楼",
+        desc: "北侧的城楼高高耸立，灰石台阶盘旋而上，垛口外是卡伦镇的辽阔天际。\n墙上挂着弓弩与箭袋，两名弩手端着十字弩，警惕地监视着下方的庭院与外墙。\n南边可以下回城堡外围的庭院。",
+        exits: { south: "castle_outer" },
+        items: [],
+        npcs: ["crossbowman", "crossbowman"]
+    },
+    castle_outer_south_tower: {
+        name: "城楼",
+        desc: "南侧的城楼与北塔遥遥相对，这里地势更高，几乎能将整片城墙尽收眼底。\n垛口后放着成捆的弩矢，两名弩手纹丝不动地立在阴影里，目光扫过城堡外围的每一个角落。\n北边可以下回城堡外围的庭院。",
+        exits: { north: "castle_outer" },
+        items: [],
+        npcs: ["crossbowman", "crossbowman"]
+    },
+    castle_hall: {
+        name: "城堡大厅",
+        desc: "城堡大厅高敞而威严，穹顶由数根粗大的石柱托起，柱身上悬挂着蓝底山鹰旗帜。\n厅堂尽头是一座高台，台上摆着一张厚重的橡木长桌与一把雕花宝座。\n火光从两侧的巨大壁炉中透出，将冷硬的石壁染上一层暖色。\n西边通向城堡外围的庭院，东边则深入城堡腹地。",
+        exits: { west: "castle_outer", east: "castle_corridor_1" },
+        items: [],
+        npcs: []
+    },
+    castle_corridor_1: {
+        name: "走廊",
+        desc: "一条铺着暗红地毯的长廊，两侧的石壁上高悬着烛台，火苗将壁上的挂毯照得明灭不定。\n西边回到城堡大厅，东边继续深入。",
+        exits: { west: "castle_hall", east: "castle_corridor_2" },
+        items: [],
+        npcs: []
+    },
+    castle_corridor_2: {
+        name: "走廊",
+        desc: "长廊的尽头分作两处去路——西边是来时的路，东边一扇半掩的门扉后传出杯盏与谈笑的人声。\n一座旋转楼梯贴着北墙盘旋而上，通向城堡二层。",
+        exits: { west: "castle_corridor_1", east: "castle_banquet_hall" },
+        items: ["castle_spiral_stairs_up"],
+        npcs: []
+    },
+    castle_banquet_hall: {
+        name: "宴会厅",
+        desc: "宴会厅灯火通明，长长的橡木长桌上摆满银盘与烛台，四壁悬挂着华丽的织锦与山鹰旗。\n一场盛宴似乎刚刚散席，桌边还留着未饮尽的酒盏与散落的面包屑。\n西边通向长廊，东边则深入城堡更幽暗的一侧。",
+        exits: { west: "castle_corridor_2", east: "castle_corridor_3" },
+        items: [],
+        npcs: []
+    },
+    castle_corridor_3: {
+        name: "走廊",
+        desc: "宴会厅东侧的走廊寂静得近乎压抑，红地毯在这里变得陈旧而发暗。\n西边可以回到宴会厅，东边继续延伸。",
+        exits: { west: "castle_banquet_hall", east: "castle_corridor_4" },
+        items: [],
+        npcs: []
+    },
+    castle_corridor_4: {
+        name: "走廊",
+        desc: "这条走廊通向城堡最阴冷的角落，墙上只有寥寥几盏将熄的油灯。\n西边是来时的路，东边尽头立着一扇通体漆黑的铁门。",
+        exits: { west: "castle_corridor_3", east: "dungeon_entrance" },
+        items: [],
+        npcs: []
+    },
+    dungeon_entrance: {
+        name: "地牢入口",
+        desc: "走廊东端的尽头，一扇通体漆黑的铁门嵌在灰石墙中。\n门缝间渗出阴冷潮湿的气息，两名城堡卫兵一动不动地守在门前，目光冰冷。\n西边是来时的走廊。",
+        exits: { west: "castle_corridor_4" },
+        items: ["dungeon_door"],
+        npcs: ["castle_guard_1", "castle_guard_2"]
+    },
+    dungeon: {
+        name: "地牢",
+        desc: "一线微弱的天光从头顶的石缝漏下，照着湿滑的石阶。\n空气里弥漫着霉味、铁锈与某种陈年的腥气，两名地牢卫兵在门后缓缓转过身来。\n身后那扇漆黑的铁门通向地牢入口，西边则继续深入阴冷的牢区。",
+        exits: { west: "dungeon_2" },
+        items: ["dungeon_exit", "dungeon_straw_mat"],
+        npcs: ["dungeon_guard", "dungeon_guard"]
+    },
+    dungeon_2: {
+        name: "地牢",
+        desc: "一条狭窄的牢道，两侧是锈迹斑斑的铁栅。脚下的泥地又湿又滑，偶尔有水滴从头顶的岩缝落下来。\n东边回到地牢入口，西边继续延伸。",
+        exits: { east: "dungeon", west: "dungeon_3" },
+        items: ["dungeon_straw_mat"],
+        npcs: []
+    },
+    dungeon_3: {
+        name: "地牢",
+        desc: "这间牢房比别处稍微干燥一些，墙角堆着发霉的稻草席。\n一名鬓发散乱的女子蜷在栅栏后，听见动静，缓缓抬起头来。\n东边是来时的路，西边还有最后一间牢房。",
+        exits: { east: "dungeon_2", west: "dungeon_4" },
+        items: ["dungeon_straw_mat"],
+        npcs: ["huasha"]
+    },
+    dungeon_4: {
+        name: "地牢",
+        desc: "地牢最深处几乎照不进一丝光，空气冷得刺骨。\n角落里扔着一张破烂的稻草席，边角似乎被什么东西压得微微翘起。\n东边是来时的牢道。",
+        exits: { east: "dungeon_3" },
+        items: ["dungeon_straw_mat_special"],
+        npcs: []
+    },
+    castle_2f_corridor_1: {
+        name: "城堡二层走廊",
+        desc: "一条盘旋而上的楼梯竟把你带到了城堡的二楼。这里比一楼更加幽静，厚地毯吞没了脚步声。\n南边一段石栏杆可以俯瞰下方的大厅，西边是通向更深处的走廊。\n北墙边还有一座继续盘旋向上的旋转楼梯，通向城堡三层。",
+        exits: { west: "castle_2f_corridor_2" },
+        items: ["castle_spiral_stairs_down", "castle_spiral_stairs_2up"],
+        npcs: []
+    },
+    castle_2f_corridor_2: {
+        name: "城堡二层走廊",
+        desc: "二楼的走廊笔直向西，两侧的门扉紧闭，只有墙上几盏风灯投下微弱的光。\n东边是楼梯口方向，西边继续延伸。",
+        exits: { east: "castle_2f_corridor_1", west: "castle_2f_corridor_3" },
+        items: [],
+        npcs: []
+    },
+    castle_2f_corridor_3: {
+        name: "城堡二层走廊",
+        desc: "这条位于最西端的走廊与别处并无二致，只是空气更冷，风灯的光也更黯淡。\n西边尽头处立着一扇半掩的木门，门后透出微弱的烛火。东边是来时的走廊。",
+        exits: { east: "castle_2f_corridor_2", west: "castle_observation_room" },
+        items: [],
+        npcs: []
+    },
+    castle_observation_room: {
+        name: "观察室",
+        desc: "观察室并不宽敞，南墙上一排长窗正对着城堡外围的庭院。\n两名弩手据窗而守，十字弩横在膝上；一名铠甲锃亮的卫兵队长负手而立，目光如刀般扫过你。\n东边的小门通向二层走廊。",
+        exits: { east: "castle_2f_corridor_3" },
+        items: [],
+        npcs: ["crossbowman", "crossbowman", "guard_captain"]
+    },
+    castle_3f_corridor_1: {
+        name: "三层走廊",
+        desc: "三楼比二楼更为安静，走廊两侧的石壁上悬着低垂的山鹰旗。\n西边一座旋转楼梯向下延伸回二层，东边继续深入。\n墙边还有一段通往顶楼的石梯。",
+        exits: { east: "castle_3f_corridor_2" },
+        items: ["castle_spiral_stairs_3down", "castle_rooftop_stairs_up"],
+        npcs: []
+    },
+    castle_rooftop: {
+        name: "顶楼",
+        desc: "城堡顶端的石砌平台，风声在这里大得几乎盖过一切。\n一面蓝底山鹰旗高高挂在旗杆上，被风撑得笔直，俯视着整座卡伦镇。\n南边一段石梯通回三楼走廊。",
+        exits: { south: "castle_3f_corridor_1" },
+        items: ["randolph_family_banner", "castle_rooftop_stairs_down"],
+        npcs: []
+    },
+    castle_3f_corridor_2: {
+        name: "三层走廊",
+        desc: "这条位于三层东侧的走廊几乎一尘不染，两名镀金胸甲的皇家卫兵拄剑而立，红披风在烛火下如凝固的血。\n东边尽头是一扇紧闭的指挥室大门。",
+        exits: { west: "castle_3f_corridor_1", east: "count_command_room" },
+        items: [],
+        npcs: ["royal_guard", "royal_guard"]
+    },
+    count_command_room: {
+        name: "伯爵指挥室",
+        desc: "指挥室中央摆着一张巨大的作战地图，图上桑华山与卡伦镇被各色标记占满。\n兰德尔伯爵正背对着门口，负手立在图前，像一尊被权欲与残暴浇铸成的雕像。\n西边是来时的走廊。",
+        exits: { west: "castle_3f_corridor_2" },
+        items: [],
+        npcs: ["count_randolph"]
     },
 
     // ========== 抄写员住宅 ==========
@@ -255,7 +412,7 @@ const WORLD_TEMPLATE_1 = {
         desc: "一扇精致的铁栅门嵌在一道低矮的石墙中央。\n门后的庭院里种着几株修剪整齐的薰衣草，碎石小径通向一座两层高的石砌小楼。\n小楼的窗户里透出暖黄色的灯光，隐约可见书架上密密排列的书卷。\n门上挂着一块小木牌，用工整的字体写着「抄写员公会·卡伦镇分会」。",
         exits: { east: "square_n2" },
         items: [],
-        npcs: []
+        npcs: ["elaine"]
     },
 
     // ========== 卡伦酒馆 ==========
@@ -456,7 +613,7 @@ const WORLD_TEMPLATE_1 = {
     },
     peasant_hut_2_inside: {
         name: "窝棚",
-        desc: "一间低矮破旧的窝棚，木板墙上尽是裂缝，冷风从缝隙里钻进来。\n角落里挤着两个瑟瑟发抖的贫民。西边的破布门帘通向贫民窟。",
+        desc: "一间低矮破旧的窝棚，木墙满是裂缝，冷风从缝隙里钻进来。\n角落里挤着两个瑟瑟发抖的贫民。西边的破布门帘通向贫民窟。",
         exits: { south: "residence_w3" },
         items: [],
         npcs: ["peasant_male", "peasant_female"]
@@ -481,7 +638,7 @@ const WORLD_TEMPLATE_1 = {
         name: "贫民窟东",
         desc: "棚屋区向北延伸，这里的棚屋更加残破不堪。\n几间棚屋顶已经塌陷，露出里面的朽木梁架。\n地面上满是积水坑和散落的碎瓦，狭窄的巷道蜿蜒在棚屋之间。\n空气中弥漫着潮湿、霉烂和贫穷的气息。",
         exits: { south: "slum_east_1", north: "town_road_e2_n1", east: "slum_east_n2", west: "town_road_n2" },
-        items: [],
+        items: ["working_peasants"],
         npcs: []
     },
     slum_east_n2: {
@@ -596,7 +753,7 @@ const WORLD_TEMPLATE_1 = {
     farm_3_1: { name: "农田", desc: "农田最西侧中央，面前就是一条清澈的小河。河对岸矗立着一座古老的石砌磨坊，水车轮吱呀作响。西边穿过小石桥便是磨坊。", exits: { north: "farm_2_1", south: "farm_4_1", east: "farm_3_2", west: "grain_mill" }, items: [], npcs: [] },
     farm_3_2: { name: "农田", desc: "农田中央偏西，这里的地势略微隆起，可以俯瞰周围的田野。西边可见一座石砌建筑的轮廓。", exits: { north: "farm_2_2", south: "farm_4_2", east: "farm_3_3", west: "farm_3_1" }, items: [], npcs: [] },
     farm_3_3: { name: "农田", desc: "整片农田的正中央，视野极为开阔，无论望向哪个方向都是绵延的麦田。这里显然是卡伦镇周边最肥沃的一块土地。", exits: { north: "farm_2_3", south: "farm_4_3", east: "farm_3_4", west: "farm_3_2" }, items: [], npcs: [] },
-    farm_3_4: { name: "农田", desc: "农田中央偏东，向东已经可以望见卡伦镇的石砌围墙和栅栏门。", exits: { north: "farm_2_4", south: "farm_4_4", east: "farm_3_5", west: "farm_3_3" }, items: [], npcs: [] },
+    farm_3_4: { name: "农田", desc: "农田中央偏东，向东已经可以望见卡伦镇的石砌围墙和栅栏门。", exits: { north: "farm_2_4", south: "farm_4_4", east: "farm_3_5", west: "farm_3_3" }, items: ["working_serfs"], npcs: [] },
     farm_3_5: { name: "农田", desc: "农田最东侧中央，面前便是卡伦镇的栅栏门。东边穿过栅栏门便是镇子的街道，酒馆的麦酒香随风飘来。", exits: { north: "farm_2_5", south: "farm_4_5", east: "square_w3", west: "farm_3_4" }, items: [], npcs: [] },
     // 第4行
     farm_4_1: { name: "农田", desc: "农田西侧偏南，西边的河道在这里转了个弯，水声隐约可闻。", exits: { north: "farm_3_1", south: "farm_5_1", east: "farm_4_2" }, items: [], npcs: [] },

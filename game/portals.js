@@ -36,6 +36,17 @@ const PORTAL_DEFS = {
     slum_hut:                 { targetRoom: "slum_hut_inside",      travelText: "你掀开破布门帘，猫腰钻进了低矮的窝棚..." },
     slum_trapdoor:            { targetRoom: "slum_tunnel",          travelText: "你掀开地板下的活板门，跳进了黑暗的地道..." },
     slum_trapdoor_exit:       { targetRoom: "slum_hut_inside",      travelText: "你推开头顶的活板门，爬回了窝棚..." },
+    castle_gate_door:         { targetRoom: "castle_outer",         travelText: "你推开厚重的大门，伯爵城堡内部的庭院展现在眼前..." },
+    castle_gate_door_exit:    { targetRoom: "count_castle_gate",    travelText: "你推开门扉，重新回到了伯爵城堡的大门之外..." },
+    castle_spiral_stairs_up:  { targetRoom: "castle_2f_corridor_1", travelText: "你踏上旋转楼梯，缓缓向城堡二层走去..." },
+    castle_spiral_stairs_down:{ targetRoom: "castle_corridor_2",    travelText: "你踏下旋转楼梯，回到了一楼的走廊..." },
+    castle_spiral_stairs_2up: { targetRoom: "castle_3f_corridor_1", travelText: "你踏上旋转楼梯，继续向城堡三层走去..." },
+    castle_spiral_stairs_3down:{ targetRoom: "castle_2f_corridor_1", travelText: "你踏下旋转楼梯，回到了二层的走廊..." },
+    castle_rooftop_stairs_up:  { targetRoom: "castle_rooftop",       travelText: "你沿着狭窄的石梯向上，风从石缝里灌进来..." },
+    castle_rooftop_stairs_down:{ targetRoom: "castle_3f_corridor_1", travelText: "你踏下石梯，回到了三楼的走廊..." },
+    dungeon_door:             { targetRoom: "dungeon",              travelText: "你用冰冷的钥匙转动锁孔，地牢门缓缓打开，阴冷潮湿的气息扑面而来...",
+                                requiresKey: "dungeon_key",          keyFailMsg: "地牢门纹丝不动。它的锁孔沉沉地注视着你，你需要一把地牢钥匙。" },
+    dungeon_exit:             { targetRoom: "dungeon_entrance",     travelText: "你踏着潮湿的石阶向上，重新回到了地牢入口..." },
     iron_gate:                { targetRoom: "dark_hall",            travelText: "你插入刻有骷髅的钥匙，沉重的大铁门发出一声低沉的闷响，缓缓开启...",
                                 requiresKey: "skull_key",            keyFailMsg: "大铁门纹丝不动，中央的骷髅锁孔仿佛在无声地冷笑。你需要刻有骷髅的钥匙。" },
     peasant_hut_1:            { targetRoom: "peasant_hut_1_inside", travelText: "你掀开破布门帘，猫腰钻进了低矮的窝棚..." },
@@ -73,7 +84,18 @@ function usePortal(portalId) {
         }
     }
 
-    // 2. 特殊处理：二号矿道出口的木梯（需要监工检查）
+    // 2. 卫兵把守的门：所在房间仍有存活卫兵时无法开启
+    const GUARDED_DOORS = [
+        { portalId: 'castle_gate_door', guardRoom: 'count_castle_gate' },
+        { portalId: 'dungeon_door', guardRoom: 'dungeon_entrance' }
+    ];
+    const guardedDoor = GUARDED_DOORS.find(d => d.portalId === portalId);
+    if (guardedDoor && typeof hasAliveGuardsInRoom === 'function' && hasAliveGuardsInRoom(guardedDoor.guardRoom)) {
+        print(`<span style="color:#ff6666;">卫兵挡在门前，必须先解决此处的卫兵才能使用这扇门。</span>`);
+        return;
+    }
+
+    // 3. 特殊处理：二号矿道出口的木梯（需要监工检查）
     if (portalId === 'ladder') {
         useSupervisorLadder();
         return;
@@ -192,6 +214,23 @@ function leaveChurchToBackDoor() {
         updateMinimap();
         updateSceneInfo();
     }, 1200);
+}
+
+// ★ 桑华山矿场入口：从卡伦镇外折返矿场深处
+function enterSanghuashanMine() {
+    clearDetailPanel();
+    currentPanel = null;
+    UI.setOverlay(true);
+    print(`<span style="color:#ff8844;">你沿着熟悉的小路，向桑华山矿场的方向折返……</span>`);
+    setTimeout(() => {
+        // 返回 272 号房间（mountain_path_13），而非 1 号房间
+        gameState.player.location = 'mountain_path_13';
+        UI.setOverlay(false);
+        look();
+        updateMinimap();
+        updateSceneInfo();
+        StoryEngine.check();
+    }, 1500);
 }
 
 // ★ 从后门进入教堂圣坛

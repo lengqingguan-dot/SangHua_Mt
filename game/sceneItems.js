@@ -4,6 +4,13 @@
 
 const GROUND_ITEM_ACTIONS = [
     { match(itemId, item) { return itemId === 'bounty_board'; }, actions(itemId, item, html) { html.push(`<div><span style="color: #cc9966; text-decoration: underline; cursor: pointer;" onclick="showBountyBoard()">📜 查看悬赏</span></div>`); }, earlyReturn: true },
+    { match(itemId, item) { return itemId === 'dungeon_door' || itemId === 'dungeon_exit'; }, actions(itemId, item, html) { html.push(`<div><span style="color: #cc9966; text-decoration: underline; cursor: pointer;" onclick="usePortal('${itemId}')">🚪 进入</span></div>`); }, earlyReturn: true },
+    { match(itemId, item) { return itemId === 'dungeon_straw_mat_special'; }, actions(itemId, item, html) { html.push(`<div><span style="color: #cc9966; text-decoration: underline; cursor: pointer;" onclick="liftDungeonStrawMat('${itemId}')">🧹 掀开</span></div>`); }, earlyReturn: true },
+    { match(itemId, item) { return itemId === 'strange_mound'; }, actions(itemId, item, html) { html.push(`<div><span style="color: #cc9966; text-decoration: underline; cursor: pointer;" onclick="digStrangeMound('${itemId}')">⛏️ 挖开</span></div>`); }, earlyReturn: true },
+    { match(itemId, item) { return itemId === 'working_peasants'; }, actions(itemId, item, html) { html.push(`<div><span style="color: #cc9966; text-decoration: underline; cursor: pointer;" onclick="observeWorkingPeasants('${itemId}')">👀 观察</span></div>`); }, earlyReturn: true },
+    { match(itemId, item) { return itemId === 'working_serfs'; }, actions(itemId, item, html) { html.push(`<div><span style="color: #cc9966; text-decoration: underline; cursor: pointer;" onclick="observeWorkingSerfs('${itemId}')">👀 观察</span></div>`); }, earlyReturn: true },
+    { match(itemId, item) { return itemId === 'randolph_family_banner'; }, actions(itemId, item, html) { html.push(`<div><span style="color: #ff6666; text-decoration: underline; cursor: pointer;" onclick="breakRandolphBanner('${itemId}')">⚔️ 折断</span></div>`); }, earlyReturn: true },
+    { match(itemId, item) { return itemId === 'flag_base'; }, actions(itemId, item, html) { html.push(`<div><span style="color: #ff6666; text-decoration: underline; cursor: pointer;" onclick="plantRedFlag('${itemId}')">🚩 插入旗帜</span></div>`); }, earlyReturn: true },
     { match(itemId, item) { return !!PORTAL_DEFS[itemId]; }, actions(itemId, item, html) { html.push(`<div><span style="color: #cc9966; text-decoration: underline; cursor: pointer;" onclick="usePortal('${itemId}')">🪜 使用</span></div>`); } },
     { match(itemId, item) { return itemId === 'ladder'; }, actions(itemId, item, html) { html.push(`<div><span style="color: #cc9966; text-decoration: underline; cursor: pointer;" onclick="useSupervisorLadder()">🪜 使用木梯</span></div>`); } },
     { match(itemId, item) { return itemId === 'removed_ladder' || (itemId.includes('removed_ladder') && itemId.includes('_dropped_')); }, actions(itemId, item, html) { html.push(`<div><span style="color: #aaffaa; text-decoration: underline; cursor: pointer;" onclick="useRemovedLadder('${itemId}')">🪜 使用</span></div>`); html.push(`<div><span style="color: #aaffaa; text-decoration: underline; cursor: pointer;" onclick="pickupItem('${itemId}')">📦 拾取</span></div>`); } },
@@ -25,9 +32,160 @@ const GROUND_ITEM_ACTIONS = [
     { match(itemId, item) { return itemId === 'karen_church_door'; }, actions(itemId, item, html) { if (gameState.player.location === 'church_porch') { html.push(`<div><span style="color: #aaffaa; text-decoration: underline; cursor: pointer;" onclick="leaveChurchToGate()">🚪 离开教堂</span></div>`); } else { html.push(`<div><span style="color: #aaffaa; text-decoration: underline; cursor: pointer;" onclick="enterChurchPorch()">🚪 进入教堂</span></div>`); } }, earlyReturn: true },
     { match(itemId, item) { return itemId === 'karen_church_back_door'; }, actions(itemId, item, html) { if (gameState.player.location === 'church_back_door') { html.push(`<div><span style="color: #aaffaa; text-decoration: underline; cursor: pointer;" onclick="enterChurchAltar()">🚪 进入教堂</span></div>`); } else { html.push(`<div><span style="color: #aaffaa; text-decoration: underline; cursor: pointer;" onclick="leaveChurchToBackDoor()">🚪 离开教堂</span></div>`); } }, earlyReturn: true },
     { match(itemId, item) { return itemId === 'karen_town'; }, actions(itemId, item, html) { html.push(`<div><span style="color: #aaffaa; text-decoration: underline; cursor: pointer;" onclick="StoryEngine.triggerUseItem('${itemId}')">🚶 进入</span></div>`); }, earlyReturn: true },
-    { match(itemId, item) { return itemId === 'sanghuashan_mine'; }, actions(itemId, item, html) { html.push(`<div><span style="color: #ff8844; text-decoration: underline; cursor: pointer;" onclick="useItemFromDetail('${itemId}')">🚶 进入</span></div>`); }, earlyReturn: true },
+    { match(itemId, item) { return itemId === 'sanghuashan_mine'; }, actions(itemId, item, html) { html.push(`<div><span style="color: #ff8844; text-decoration: underline; cursor: pointer;" onclick="enterSanghuashanMine()">🚶 进入</span></div>`); }, earlyReturn: true },
     { match(itemId, item) { return itemId.includes('corpse'); }, actions(itemId, item, html) { if (item.corpseStory || item.usable) html.push(`<div><span style="color: #ff66aa; text-decoration: underline; cursor: pointer;" onclick="useCorpseOnGround('${itemId}')">🔞 互动</span></div>`); if (item.loot && item.loot.length > 0) html.push(`<div><span style="color: #ffdd44; text-decoration: underline; cursor: pointer;" onclick="lootCorpse('${itemId}')">✨ 搜刮</span></div>`); if (item.dismemberable) html.push(`<div><span style="color: #ff6b6b; text-decoration: underline; cursor: pointer;" onclick="dismemberItem('${itemId}')">🔪 肢解</span></div>`); if (!item.notPickable) { html.push(`<div><span style="color: #aaffaa; text-decoration: underline; cursor: pointer;" onclick="pickupItem('${itemId}')">📦 拾取</span></div>`); const sameCount = countSameItemsOnGround(item); if (sameCount > 1) html.push(`<div><span style="color: #aaffaa; text-decoration: underline; cursor: pointer;" onclick="pickupAllSameItems('${itemId}')">📥 全部拾取(${sameCount}个)</span></div>`); } } }
 ];
+
+// 挖开墓地中怪异的小土堆：播放剧情，获得「抄写员的手稿」
+function digStrangeMound(itemId) {
+    const room = gameState.world[gameState.player.location];
+    if (!room || !room.items || !room.items.includes(itemId)) { print("土堆已不存在。"); return; }
+
+    clearDetailPanel(); currentPanel = null;
+
+    StoryEngine.playLines({
+        lines: [
+            "枯死的橡树底下，土面还是潮的。没有墓碑，只有一块没刻字的青石压在上面。旁边的野花已经蔫了，花瓣蜷缩成褐色的团。",
+            "你蹲下来。土面边缘有一处凹陷，像是被人动过。你拨开浮土，指腹碰到一个硬东西。",
+            "油布包裹。用蜡封过，没有纹章。像是一个不想让任何人发现的东西。",
+            "你拆开。里面是一叠手稿，边角微卷，字迹工整细密，每一笔都落在格子里。人名，日期，数字，简短的事由。地契没收记录，林地产权变更，新增税目，驻军征粮令的历年对比——全是抄本。",
+            "最后一页笔迹明显变了，潦草、急促，像是在赶在什么之前写完：「若你读到这些，我已经不在了。有些事若无人记得，便等于不曾发生。」"
+        ],
+        color: '#cc9966', useNextBtn: true,
+        onComplete: () => {
+            const idx = room.items.indexOf(itemId);
+            if (idx > -1) room.items.splice(idx, 1);
+
+            const manuscript = createItemFromTemplate('scribe_manuscript');
+            if (manuscript) {
+                gameState.player.inventory.push(manuscript);
+                print(`<span style="color:#aaffaa;">✨ 获得了「${manuscript.name}」。</span>`);
+            }
+            updateSceneInfo();
+            if (typeof StoryEngine !== 'undefined') StoryEngine.check();
+        }
+    });
+}
+
+// 观察劳动的贫民们：记录观察，两个景观都观察后获得旗帜设计图
+function observeWorkingPeasants(itemId) {
+    if (!gameState.gameFlags) gameState.gameFlags = {};
+    gameState.gameFlags.observedPeasants = true;
+    _afterObserveLabor(itemId);
+}
+
+// 观察劳作的农奴们：记录观察，两个景观都观察后获得旗帜设计图
+function observeWorkingSerfs(itemId) {
+    if (!gameState.gameFlags) gameState.gameFlags = {};
+    gameState.gameFlags.observedSerfs = true;
+    _afterObserveLabor(itemId);
+}
+
+function _afterObserveLabor(itemId) {
+    clearDetailPanel(); currentPanel = null;
+    print("");
+    if (itemId === 'working_peasants') {
+        print(`<span style="color:#cc9966;">贫民们围在破棚前，铁锤一下下敲着，粗麻绳把散架的屋角重新捆牢。那些最不起眼的手，一直在做最不起眼、却又最不能停止的活计。</span>`);
+    } else {
+        print(`<span style="color:#cc9966;">农奴们躬身在田里，镰刀一茬茬地放倒麦子。他们交得出七成的粮，却未必换得回一顿饱饭。那种沉默的恨，和麦穗一样沉。</span>`);
+    }
+
+    if (gameState.gameFlags.observedPeasants && gameState.gameFlags.observedSerfs) {
+        const has = gameState.player.inventory.some(i => i && i.id === 'flag_design');
+        if (!has) {
+            const design = createItemFromTemplate('flag_design');
+            if (design) {
+                gameState.player.inventory.push(design);
+                print(`<span style="color:#aaffaa;">✨ 你从这些劳作的身影中看出了某种轮廓——获得了「${design.name}」。</span>`);
+            }
+        }
+    }
+    updateSceneInfo();
+    if (typeof StoryEngine !== 'undefined') StoryEngine.check();
+}
+
+// 折断兰德尔家族旗帜（伯爵死亡后）
+function breakRandolphBanner(itemId) {
+    const room = gameState.world[gameState.player.location];
+    if (!room || !room.items || !room.items.includes(itemId)) { print("旗帜已不存在。"); return; }
+
+    const countDefeated = (typeof _isNpcDefeated === 'function' ? _isNpcDefeated('count_randolph') : false)
+        || (typeof StoryEngine !== 'undefined' ? !StoryEngine._isNpcAliveAnywhere('count_randolph') : true);
+
+    if (!countDefeated) {
+        print(`<span style="color:#888;">旗杆纹丝不动。只要兰德尔伯爵还活着，这面山鹰旗便不会倒。</span>`);
+        return;
+    }
+
+    clearDetailPanel(); currentPanel = null;
+    print("");
+    print(`<span style="color:#ff6666;">你抓住旗杆，用尽全力一折——</span>`);
+    print(`<span style="color:#ff8844;">「咔嚓——」</span>`);
+    print(`<span style="color:#aaffaa;">兰德尔家族的山鹰旗断成两截，旗面被风撕开一道长口。</span>`);
+
+    const idx = room.items.indexOf(itemId);
+    if (idx > -1) room.items.splice(idx, 1);
+    if (!room.items.includes('randolph_family_banner_broken')) {
+        room.items.push('randolph_family_banner_broken');
+    }
+    if (!room.items.includes('flag_base')) {
+        room.items.push('flag_base');
+    }
+    updateSceneInfo();
+}
+
+// 将「鲜红的旗帜」插入旗帜基座
+function plantRedFlag(itemId) {
+    const room = gameState.world[gameState.player.location];
+    if (!room || !room.items || !room.items.includes(itemId)) { print("基座已不存在。"); return; }
+
+    const inv = gameState.player.inventory;
+    const banner = inv.find(i => i && i.id === 'red_banner');
+    if (!banner) { print(`<span style="color:#888;">你的行囊里没有「鲜红的旗帜」可以插入。</span>`); return; }
+
+    clearDetailPanel(); currentPanel = null;
+    print("");
+    print(`<span style="color:#ff6666;">你将那面鲜红的旗帜插进基座。</span>`);
+    print(`<span style="color:#aaffaa;">红底上，金色的镰刀与锤子在风里缓缓展开。</span>`);
+
+    // 消耗旗帜
+    const bidx = inv.indexOf(banner);
+    if (bidx > -1) inv.splice(bidx, 1);
+
+    // 基座替换为已插旗
+    const idx = room.items.indexOf(itemId);
+    if (idx > -1) room.items.splice(idx, 1);
+    if (!room.items.includes('red_flag_planted')) room.items.push('red_flag_planted');
+
+    if (!gameState.gameFlags) gameState.gameFlags = {};
+    gameState.gameFlags.redFlagPlanted = true;
+
+    updateSceneInfo();
+    StoryEngine.check();
+}
+
+// 掀开地牢中特殊的稻草席：删除席子，露出一扇不起眼的活板门
+function liftDungeonStrawMat(itemId) {
+    const room = gameState.world[gameState.player.location];
+    if (!room || !room.items || !room.items.includes(itemId)) { print("稻草席已不存在。"); return; }
+
+    const idx = room.items.indexOf(itemId);
+    if (idx > -1) room.items.splice(idx, 1);
+
+    const trapId = 'dungeon_trapdoor';
+    if (!room.items.includes(trapId)) {
+        if (!ITEM_TEMPLATES[trapId]) {
+            ITEM_TEMPLATES[trapId] = { id: trapId, name: "不起眼的活板门", type: "misc", desc: "稻草席被掀开后，地面露出一扇不起眼的活板门，木板与泥地几乎融为一体，不仔细看很难察觉。", usable: true, customAction: true, notPickable: true };
+        }
+        room.items.push(trapId);
+    }
+
+    clearDetailPanel(); currentPanel = null;
+    print("");
+    print(`<span style="color:#cc9966;">你将破烂的稻草席掀到一旁……</span>`);
+    print(`<span style="color:#aaffaa;">稻草席下露出一扇不起眼的活板门。</span>`);
+    updateSceneInfo();
+}
 
 function showGroundItemInfo(itemId) {
     const item = getItemInfoById(itemId);

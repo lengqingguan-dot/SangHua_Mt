@@ -396,6 +396,16 @@
         #block-overlay.active ~ .game-container .left-panel .scene-content span {
             pointer-events: none;
         }
+        /* 战斗中小地图可点击（用于逃跑），仅可通行方向亮起，空格保持置灰 */
+        body.battle-mode #block-overlay.active ~ .game-container .map-cell.clickable {
+            opacity: 1;
+            pointer-events: auto;
+            border-color: #ff8844;
+        }
+        body.battle-mode #block-overlay.active ~ .game-container .map-cell.clickable:hover {
+            background: #2a1a10;
+            border-color: #ffaa66;
+        }
 
         #story-next-btn,
         #story-skip-btn {
@@ -531,6 +541,10 @@
     <script src="items/items_scene.js"></script>
     <script src="items/items_mara.js"></script>
     <script src="items/items_generic_female.js"></script>
+    <script src="items/items_char_huasha.js"></script>
+    <script src="items/items_char_elaine.js"></script>
+    <script src="items/items_char_female_serf.js"></script>
+    <script src="items/items_char_mandorola.js"></script>
     <script src="items/items_char_aisha.js"></script>
     <script src="items/items_char_liana.js"></script>
     <script src="items/items_char_cecilia.js"></script>

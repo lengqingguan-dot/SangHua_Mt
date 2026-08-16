@@ -134,9 +134,11 @@ function assaultNPC(npcId) {
             lines: story, color: '#ff44e3', useNextBtn: true, requireOverlay: false,
             onEachLine: () => { print("<br>"); },
             onComplete: () => {
+                UI.setOverlay(false);
                 print(`<span style="color: #ff66aa;">侵犯结束...</span>`);
                 if (!gameState.assaultedNPCs) gameState.assaultedNPCs = {};
                 gameState.assaultedNPCs[npcId] = true;
+                currentPanel = null;
             }
         });
     } else {

@@ -71,11 +71,13 @@ function getDisplayableBountyCount() {
     return 5;
 }
 
-// 随机取若干可接悬赏（按星级过滤）
-function rollAvailableBounties() {
+// 随机取若干可接悬赏（按星级过滤；excludeDefIds 为排除的目标定义ID）
+function rollAvailableBounties(excludeDefIds = []) {
     ensureBountyState();
     const [minStar, maxStar] = getAvailableStars();
-    const eligible = BOUNTY_NPCS.filter(b => b.stars >= minStar && b.stars <= maxStar);
+    const eligible = BOUNTY_NPCS.filter(b =>
+        b.stars >= minStar && b.stars <= maxStar && !excludeDefIds.includes(b.id)
+    );
     if (eligible.length === 0) return [];
     const shuffled = [...eligible].sort(() => Math.random() - 0.5);
     return shuffled.slice(0, getDisplayableBountyCount());
@@ -84,13 +86,18 @@ function rollAvailableBounties() {
 // 刷新悬赏板（消耗 1 名望）
 function refreshBountyBoard() {
     const f = getFaction();
+    const bs = ensureBountyState();
+    // 已接取任务后不允许手动刷新（保持任务栏稳定）
+    if (bs.activeBounties && bs.activeBounties.length > 0) {
+        print(`<span style="color:#ff6666;">已接取任务后无法手动刷新悬赏板。</span>`);
+        return;
+    }
     if (f.renown < 1) {
         print(`<span style="color:#ff6666;">名望不足，无法刷新悬赏板。</span>`);
         return;
     }
     f.renown -= 1;
     refreshFactionLevel();
-    const bs = ensureBountyState();
     bs.lastShownBounties = rollAvailableBounties();
     showBountyBoard();
 }
@@ -108,6 +115,11 @@ const BOUNTY_ROOM_POOL = [
 // 接取悬赏：实例化NPC并随机刷新到房间，返回是否成功
 function acceptBounty(bountyDef) {
     ensureBountyState();
+    // 一次只能接取一个势力任务
+    if (gameState.bountyState.activeBounties && gameState.bountyState.activeBounties.length > 0) {
+        print(`<span style="color:#ff6666;">你已有一个进行中的势力任务，完成后方可接取新任务。</span>`);
+        return false;
+    }
     const npcId = spawnBountyNpc(bountyDef);
     if (!npcId) return false;
 
@@ -170,12 +182,19 @@ function showBountyBoard() {
     html += `<div style="color:#888;">等级 ${f.level} 可接星级 ${getAvailableStars()[0]}~${getAvailableStars()[1]}，本板展示 ${getDisplayableBountyCount()} 个悬赏。</div>\n`;
     html += centerLine();
 
+    const hasActive = gameState.bountyState.activeBounties && gameState.bountyState.activeBounties.length > 0;
+    if (hasActive) {
+        html += `<div style="color:#ffaa66;">你已有一个进行中的势力任务，完成后方可接取新任务。</div>\n`;
+    }
     const bounties = gameState.bountyState.lastShownBounties;
     if (bounties.length === 0) {
         html += `<div style="color:#888;">暂时没有可接取的悬赏，可以尝试刷新。</div>\n`;
     } else {
         bounties.forEach(bounty => {
-            html += `<div style="margin:6px 0;">⭐${bounty.stars} ${bounty.name}　<span style="color:#ffaa00;cursor:pointer;text-decoration:underline;" onclick="acceptBountyFromBoard('${bounty.id}')">📋 接取</span></div>\n`;
+            const btn = hasActive
+                ? `<span style="color:#888;">📋 接取</span>`
+                : `<span style="color:#ffaa00;cursor:pointer;text-decoration:underline;" onclick="acceptBountyFromBoard('${bounty.id}')">📋 接取</span>`;
+            html += `<div style="margin:6px 0;">⭐${bounty.stars} ${bounty.name}　${btn}</div>\n`;
         });
     }
 
@@ -212,11 +231,18 @@ function getBountyDef(bounty) {
 
 // 从面板点击「接取」
 function acceptBountyFromBoard(bountyDefId) {
+    const bs = ensureBountyState();
+    if (bs.activeBounties && bs.activeBounties.length > 0) {
+        print(`<span style="color:#ff6666;">你已有一个进行中的势力任务，完成后方可接取新任务。</span>`);
+        return;
+    }
     const bountyDef = BOUNTY_NPCS.find(b => b.id === bountyDefId);
     if (!bountyDef) { print("悬赏已失效。"); return; }
 
     if (acceptBounty(bountyDef)) {
         print(`<span style="color:#ffaa66;">你接取了悬赏「${bountyDef.name}」。目标已潜藏在镇子的某个角落。</span>`);
+        // 接取后按照规则从任务池刷新新的悬赏板（排除已接取目标）
+        bs.lastShownBounties = rollAvailableBounties([bountyDefId]);
         showBountyBoard();
     } else {
         print("接取失败，请重试。");

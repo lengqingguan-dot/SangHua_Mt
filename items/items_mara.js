@@ -34,7 +34,7 @@ Object.assign(ITEM_TEMPLATES, {
         type: "limb",
         rarity: MARA_QUALITY,
         score: 50,
-        desc: "玛拉的腿，37码。瘦而直，膝盖以下的皮肤因为常年奔走而带着些微擦伤的旧痕。她的腿不算长，却有一种贫苦人家磨出来的紧实。断面露出淡红的肌肉束与白生生的腿骨，血顺着脚踝一直流到脚背。"
+        desc: "玛拉的腿。瘦而直，膝盖以下的皮肤因为常年奔走而带着些微擦伤的旧痕。她的腿不算长，却有一种贫苦人家磨出来的紧实。断面露出淡红的肌肉束与白生生的腿骨，血顺着脚踝一直流到脚背。"
     },
 
     mara_arm: {
@@ -97,7 +97,7 @@ function generateMaraCorpse() {
     return corpse;
 }
 
-// 生成科林的尸体（可互动、可拾取，不可肢解）
+// 生成科林的尸体（仅可拾取，不可使用/互动）
 function generateColinCorpse() {
     const uid = `corpse_angry_man_${Date.now()}`;
     const corpse = {
@@ -105,13 +105,8 @@ function generateColinCorpse() {
         name: "科林的尸体",
         type: "limb",
         desc: "一具年轻男人的尸体，胸口被军刀捅穿，血从伤口淅沥地淌下，把身前的泥地浸成一片黑红。他至死都睁着眼睛。",
-        usable: true,
-        customAction: true,
-        corpseStory: [
-            "你看向科林的尸体。他倒在地上，胸口那个窟窿还在往外渗着已经变冷的血。",
-            "他的手还护在玛拉倒下的方向，仿佛哪怕死了，也没松开那份担惊受怕的固执。",
-            "门外早已没了士兵的动静。只有破风箱一样的声音，是你自己的呼吸。"
-        ]
+        usable: false,
+        customAction: false
     };
     ITEM_TEMPLATES[uid] = corpse;
     return corpse;

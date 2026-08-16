@@ -20,6 +20,9 @@ const StoryEngine = {
     /** 任务子目标进度 { questId: { conditionIndex: true } } */
     questProgress: {},
 
+    /** 多阶段任务的当前阶段索引 { questId: stageIndex } */
+    questStages: {},
+
     /** 是否已完成加载 */
     loaded: false,
 
@@ -146,7 +149,7 @@ const StoryEngine = {
                 const actualType = story.conditions.condType || story.conditions.type;
                 const actualValue = story.conditions.condValue || story.conditions.value;
                 if (actualType === condType && actualValue === condValue) {
-                    this.completeQuest(questId, story);
+                    this._completeOrAdvance(questId, story);
                 }
             }
         }
@@ -183,6 +186,12 @@ const StoryEngine = {
         this.activeQuests.push(id);
         this.questProgress[id] = {};
 
+        // 多阶段任务：从第一阶段开始装填任务运行字段
+        if (story.stages && story.stages.length > 0) {
+            this.questStages[id] = 0;
+            this._applyStage(id, story);
+        }
+
         const announce = () => {
             print(`<span style="color: #ffaa66; font-size: 1.3em; font-weight: bold;">【新任务】${story.name}</span>`);
             if (story.afterStartStory) story.afterStartStory();
@@ -214,7 +223,7 @@ const StoryEngine = {
         // 处理 single 类型条件（单一条件）
         if (story.conditions.type === 'single') {
             if (this.evaluateCondition(story.conditions)) {
-                this.completeQuest(questId, story);
+                this._completeOrAdvance(questId, story);
             }
             return;
         }
@@ -225,7 +234,7 @@ const StoryEngine = {
                 return this.evaluateCondition(cond) || this.questProgress[questId]?.[i];
             });
             if (allMet) {
-                this.completeQuest(questId, story);
+                this._completeOrAdvance(questId, story);
             }
         }
     },
@@ -315,6 +324,83 @@ const StoryEngine = {
         }
     },
 
+    /** 将当前阶段运行字段装填到 story 上 */
+    _applyStage(questId, story) {
+        const stageIdx = this.questStages[questId] || 0;
+        const stage = story.stages[stageIdx];
+        if (!stage) return;
+        story.questNpc = stage.questNpc;
+        story.questDialogue = stage.questDialogue;
+        story.conditions = stage.conditions;
+        story.description = stage.description;
+        story.startStory = stage.startStory || [];
+        story.completeStory = stage.completeStory || [];
+        story.rewards = stage.rewards;
+        story.questDialogueOnComplete = stage.questDialogueOnComplete;
+        story.onComplete = stage.onComplete;
+        if (stage.completeStoryUseNextBtn !== undefined) story.completeStoryUseNextBtn = stage.completeStoryUseNextBtn;
+        if (stage.completeStoryColor !== undefined) story.completeStoryColor = stage.completeStoryColor;
+        if (stage.completeStoryIsTitle !== undefined) story.completeStoryIsTitle = stage.completeStoryIsTitle;
+    },
+
+    /** 完成/推进：多阶段任务逐阶段推进，单阶段或最后阶段走 completeQuest */
+    _completeOrAdvance(questId, story) {
+        if (story.stages && story.stages.length > 0) {
+            const idx = this.questStages[questId] || 0;
+            this._finishStage(questId, story, idx);
+        } else {
+            this.completeQuest(questId, story);
+        }
+    },
+
+    /** 完成一个阶段，若有下一阶段则推进，否则按最终完成处理 */
+    _finishStage(questId, story, idx) {
+        const stage = story.stages[idx];
+        if (!stage) return;
+
+        const hasNext = idx + 1 < story.stages.length;
+        const finish = () => {
+            if (hasNext) {
+                this._grantRewards(stage.rewards, story.name);
+                if (stage.onComplete) stage.onComplete();
+                this.questStages[questId] = idx + 1;
+                this.questProgress[questId] = {};
+                this._applyStage(questId, story);
+                UI.setOverlay(false);
+                this.check();
+            } else {
+                this.completeQuest(questId, story);
+            }
+        };
+
+        // 非最终阶段若有专属完成剧情则播放，否则直接推进
+        if (hasNext && stage.completeStory && stage.completeStory.length > 0) {
+            this.playLines({
+                lines: stage.completeStory, color: '#ffaa66',
+                useNextBtn: stage.completeStoryUseNextBtn !== undefined ? stage.completeStoryUseNextBtn : true,
+                onComplete: finish
+            });
+        } else {
+            finish();
+        }
+    },
+
+    _grantRewards(rewards, name) {
+        if (!rewards) return;
+        if (rewards.exp) {
+            gameState.player.exp += rewards.exp;
+            print(`<span style="color: #ffdd44;">获得 ${rewards.exp} 经验值</span>`);
+            checkLevelUp();
+        }
+        if (rewards.item) {
+            const item = createItemFromTemplate(rewards.item);
+            if (item) {
+                gameState.player.inventory.push(item);
+                print(`<span style="color: #aaffaa;">获得 ${item.name}</span>`);
+            }
+        }
+    },
+
     // ==================== 存档/读档 ====================
 
     /** 获取当前剧情状态（用于存档） */
@@ -323,7 +409,8 @@ const StoryEngine = {
             completedEvents: [...this.completedEvents],
             activeQuests: [...this.activeQuests],
             completedQuests: [...this.completedQuests],
-            questProgress: JSON.parse(JSON.stringify(this.questProgress))
+            questProgress: JSON.parse(JSON.stringify(this.questProgress)),
+            questStages: JSON.parse(JSON.stringify(this.questStages))
         };
     },
 
@@ -334,17 +421,45 @@ const StoryEngine = {
         this.activeQuests = state.activeQuests || [];
         this.completedQuests = state.completedQuests || [];
         this.questProgress = state.questProgress || {};
+        this.questStages = state.questStages || {};
         this.loaded = true;
+
+        // 多阶段任务恢复当前阶段运行字段
+        for (const questId of this.activeQuests) {
+            const story = this.registry.get(questId);
+            if (story && story.stages && story.stages.length > 0) {
+                this._applyStage(questId, story);
+            }
+        }
     },
 
     // ==================== 任务NPC对话 ====================
 
-    /** 获取某个NPC关联的进行中任务 */
+    /** 判断任务当前是否已满足除「对话」之外的所有前置条件（即是否应显示任务对话选项） */
+    _isQuestTalkAvailable(story) {
+        if (!story || !story.conditions) return true;
+        const conds = story.conditions;
+        if (conds.type === 'single') {
+            const actualType = conds.condType || conds.type;
+            if (actualType === 'quest_talk') return true;
+            return this.evaluateCondition(conds);
+        }
+        if (conds.type === 'composite' && conds.subConditions) {
+            return conds.subConditions.every(cond => {
+                const condType = cond.condType || cond.type;
+                if (condType === 'quest_talk') return true;
+                return this.evaluateCondition(cond);
+            });
+        }
+        return true;
+    },
+
+    /** 获取某个NPC关联的、当前可对话的进行中任务 */
     getActiveQuestsForNpc(npcId) {
         const results = [];
         for (const questId of this.activeQuests) {
             const story = this.registry.get(questId);
-            if (story && story.questNpc === npcId && story.questDialogue) {
+            if (story && story.questNpc === npcId && story.questDialogue && this._isQuestTalkAvailable(story)) {
                 results.push({ id: questId, story: story });
             }
         }
@@ -367,11 +482,37 @@ const StoryEngine = {
                 if (typeof story.questDialogueOnComplete === 'function') {
                     story.questDialogueOnComplete();
                 } else {
-                    this.markConditionProgress('quest_talk', story.questNpc);
+                    this._markQuestTalk(questId, story);
                 }
             }
         });
         return true;
+    },
+
+    /** 标记与任务NPC对话类条件完成（支持 single 与 composite） */
+    _markQuestTalk(questId, story) {
+        if (!story || !story.conditions) {
+            this.markConditionProgress('quest_talk', story ? story.questNpc : undefined);
+            return;
+        }
+
+        // single 条件：quest_talk 直接完成/推进
+        if (story.conditions.type === 'single') {
+            const actualType = story.conditions.condType || story.conditions.type;
+            if (actualType === 'quest_talk') {
+                this._completeOrAdvance(questId, story);
+            }
+            return;
+        }
+
+        // composite 条件：标记其中 quest_talk 子条件为完成
+        if (story.conditions.type === 'composite' && story.conditions.subConditions) {
+            story.conditions.subConditions.forEach((cond, i) => {
+                if ((cond.condType || cond.type) === 'quest_talk') {
+                    this.markQuestProgress(questId, i);
+                }
+            });
+        }
     },
 
     // ==================== 逐行打印通用方法 ====================

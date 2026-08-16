@@ -59,6 +59,9 @@ async function saveGame() {
             factions: gameState.factions || {},
             bountyState: gameState.bountyState || { activeBounties: [], lastShownBounties: [] },
 
+            // ★ 持久化逃跑后的后台盟友战斗
+            backgroundBattles: gameState.backgroundBattles || {},
+
             // ★ 持久化动态创建的物品模板
             dynamicItems: collectDynamicItems(),
 
@@ -120,6 +123,8 @@ async function loadGame() {
         if (!gameState.bountyState) gameState.bountyState = { activeBounties: [], lastShownBounties: [] };
         if (!gameState.bountyState.activeBounties) gameState.bountyState.activeBounties = [];
         if (!gameState.bountyState.lastShownBounties) gameState.bountyState.lastShownBounties = [];
+        // 兼容旧存档：补后台战斗字段
+        if (!gameState.backgroundBattles) gameState.backgroundBattles = {};
 
         // 重新加载世界数据，确保包含最新的房间定义
         const latestWorld = getWorldData();
@@ -152,6 +157,13 @@ async function loadGame() {
         // ★ 读档后恢复进行中悬赏的NPC实例
         if (typeof restoreBountyNpcs === 'function') {
             restoreBountyNpcs();
+        }
+
+        // ★ 读档后恢复未完成的后台盟友战斗
+        if (typeof ensureBackgroundBattleLoop === 'function') {
+            const hasPending = Object.keys(gameState.backgroundBattles || {})
+                .some(id => gameState.backgroundBattles[id] && gameState.backgroundBattles[id].status === 'pending');
+            if (hasPending) ensureBackgroundBattleLoop();
         }
 
         print("📀 记忆复苏，你回到了桑华山的矿道中……");

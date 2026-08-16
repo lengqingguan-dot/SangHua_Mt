@@ -6,7 +6,8 @@
 // 悬赏目标元数据（id 对应 CHARACTER_TEMPLATES 中的基础模板）
 // stars: 星级，影响可接等级与名望奖励
 const BOUNTY_NPCS = [
-    { id: 'bounty_peasant_female', name: '女贫民', stars: 1 }
+    { id: 'bounty_peasant_female', name: '女贫民', stars: 1 },
+    { id: 'bounty_female_serf', name: '女农奴', stars: 1 }
 ];
 
 // 星级 → 名望奖励
@@ -21,6 +22,27 @@ const BOUNTY_REWARDS = {
 
 // 悬赏目标基础模板（由 spawnBountyNpc 克隆为唯一实例并注册）
 Object.assign(CHARACTER_TEMPLATES, {
+    bounty_female_serf: {
+        id: 'bounty_female_serf',
+        name: '女农奴',
+        type: 'npc',
+        desc: '一个被悬赏通缉的女农奴，皮肤黝黑结实，手里攥着一把磨得发亮的镰刀，眼底是豁出去的恨意。',
+        dialogue: [
+            "「领主没了……你们这些狗腿子还要追着我不放吗？」"
+        ],
+        hp: 35,
+        maxHp: 35,
+        atk: 8,
+        def: 3,
+        agi: 6,
+        level: 1,
+        canTalk: true,
+        canFight: true,
+        hostile: false,
+        drops: [],
+        exp: 10,
+        femaleCorpse: true
+    },
     bounty_peasant_female: {
         id: 'bounty_peasant_female',
         name: '女贫民',

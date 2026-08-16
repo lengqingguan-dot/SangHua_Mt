@@ -28,6 +28,23 @@ function move(direction) {
         return;
     }
 
+    // ★ 战斗中点击小地图/输入方向 → 触发逃跑尝试
+    if (typeof battleState !== 'undefined' && battleState.inBattle) {
+        tryFlee(fullDir);
+        return;
+    }
+
+    // ★ 卫兵把守的通行：起始房间仍有存活卫兵时无法通过
+    const GUARDED_PASSAGES = [
+        { from: 'fence_gate_north', to: 'castle_road_1' },
+        { from: 'castle_3f_corridor_2', to: 'count_command_room' }
+    ];
+    const guarded = GUARDED_PASSAGES.find(p => currentLoc === p.from && targetRoomId === p.to);
+    if (guarded && typeof hasAliveGuardsInRoom === 'function' && hasAliveGuardsInRoom(currentLoc)) {
+        print(`<span style="color:#ff6666;">卫兵挡住了去路，必须先解决此处的卫兵才能通行。</span>`);
+        return;
+    }
+
     // 通行条件检查
     if (!checkPassCondition(targetRoomId)) return;
 
@@ -46,6 +63,10 @@ function move(direction) {
     }
 
     look();
+
+    // 进入房间若恢复了后台战斗（含仇恨恢复），则停止后续普通渲染
+    if (typeof battleState !== 'undefined' && battleState.inBattle) return;
+
     updateMinimap();
     updateSceneInfo();
 
@@ -104,6 +125,7 @@ function checkPassCondition(targetRoomId) {
 
 // 发狂敌人主动攻击
 function checkHostileNPCs(roomId) {
+    if (typeof battleState !== 'undefined' && battleState.inBattle) return;
     const newRoom = gameState.world[roomId];
     if (!newRoom || !newRoom.npcs) return;
 
@@ -132,6 +154,11 @@ function checkHostileNPCs(roomId) {
 
 // 从按钮/小地图移动（先关闭面板）
 function moveByButton(direction) {
+    // 战斗中点击小地图触发逃跑，不关闭战斗详情面板
+    if (typeof battleState !== 'undefined' && battleState.inBattle) {
+        move(direction);
+        return;
+    }
     if (currentPanel !== null) {
         closeCurrentPanel();
         setTimeout(() => move(direction), 50);

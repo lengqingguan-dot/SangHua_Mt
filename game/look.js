@@ -14,6 +14,13 @@ function look() {
         }
     }
 
+    // 进入房间时检查是否存在后台战斗记录（盟友后续或仇恨恢复）
+    if (typeof maybeResumeOrReportBackgroundBattle === 'function' && !battleState.inBattle) {
+        if (maybeResumeOrReportBackgroundBattle(loc)) {
+            return;
+        }
+    }
+
     if (gameState.firstTimeEntered && loc === 'mine_deep') {
         StoryEngine.check();
         return;

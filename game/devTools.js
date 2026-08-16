@@ -110,7 +110,18 @@ const ROOM_ID_MAP = {
     291: 'deep_forest_1_e4',     292: 'deep_forest_1_w4',  293: 'deep_forest_1_w4_extra',
     294: 'deep_forest_2_e3',     295: 'deep_forest_2_e4',  296: 'deep_forest_2_w3',
     297: 'deep_forest_2_w4',     298: 'deep_forest_2_w4_extra',
-    299: 'deep_forest_3_w2',     300: 'deep_forest_3_w3',  301: 'deep_forest_3_w4'
+    299: 'deep_forest_3_w2',     300: 'deep_forest_3_w3',  301: 'deep_forest_3_w4',
+    302: 'castle_outer',          303: 'castle_outer_north_tower', 304: 'castle_outer_south_tower',
+    305: 'castle_hall',           306: 'castle_corridor_1',    307: 'castle_corridor_2',
+    308: 'castle_banquet_hall',   309: 'castle_2f_corridor_1', 310: 'castle_2f_corridor_2',
+    311: 'castle_2f_corridor_3',  312: 'castle_observation_room',
+    313: 'castle_corridor_3',      314: 'castle_corridor_4',
+    315: 'dungeon_entrance',       316: 'dungeon',
+    317: 'castle_3f_corridor_1',   318: 'castle_3f_corridor_2',
+    319: 'count_command_room',
+    320: 'dungeon_2',              321: 'dungeon_3',
+    322: 'dungeon_4',
+    323: 'castle_rooftop'
 };
 
 // 由 ROOM_ID_MAP 自动生成的反向映射: roomId → 编号

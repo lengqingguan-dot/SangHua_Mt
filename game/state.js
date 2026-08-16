@@ -43,6 +43,8 @@ function getDefaultGameState() {
             activeBounties: [],
             lastShownBounties: []
         },
+        // 玩家逃跑后盟友与敌人的后台战斗记录（按房间ID索引）
+        backgroundBattles: {},
         gameFlags: {}
     };
 }

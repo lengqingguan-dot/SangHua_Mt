@@ -69,14 +69,13 @@ const skills = {
                 print(`<span style="color: #ff6666;">你消耗了${hpCost}点生命值释放舍身！</span>`);
                 if (gameState.player.hp <= 0) { battleEnd(false); return false; }
             } else {
-                print(`<span style="color: #aaffaa;">你的灵巧高于${targetEnemy.name}，舍身无需扣血！</span>`);
+                print(`<span style="color: #aaffaa;">你的灵巧高于${enemyNameHtml(targetEnemy.name)}，舍身无需扣血！</span>`);
             }
 
             const playerAtk = getCharacterAttack(gameState.player);
             const damage = calculateDamage(playerAtk, targetEnemy.def);
             targetEnemy.currentHp = Math.max(0, targetEnemy.currentHp - damage);
-            print(`<span style="color: #ff8844;">你对${targetEnemy.name}舍身一击，造成${damage}点伤害！</span>`);
-            if (targetEnemy.currentHp <= 0) { print(`<span style="color: #ff8888;">${targetEnemy.name}倒下了！</span>`); }
+            print(`<span style="color: #ff8844;">你对${enemyNameHtml(targetEnemy.name)}舍身一击，造成${damage}点伤害！</span>`);
 
             battleState.sacrificeCooldown = 3;
             return true;
@@ -93,7 +92,7 @@ const skills = {
         effect: function(caster) {
             const boost = Math.floor(caster.def * 0.5);
             caster.def += boost;
-            print(`<span style="color: #66aaff;">莉娅娜释放了「真·誓言」！防御力上涨50%（+${boost}）！</span>`);
+            print(`<span style="color: #66aaff;">${enemyNameHtml(caster.name)}释放了「真·誓言」！防御力上涨50%（+${boost}）！</span>`);
             return true;
         }
     },
@@ -109,7 +108,7 @@ const skills = {
             const healAmount = Math.floor(caster.maxHp * 0.2);
             const actualHeal = Math.min(healAmount, caster.maxHp - caster.currentHp);
             caster.currentHp = Math.min(caster.maxHp, caster.currentHp + healAmount);
-            print(`<span style="color: #ffdd88;">安德罗斯释放了「圣光」！回复了${actualHeal}点生命值！</span>`);
+            print(`<span style="color: #ffdd88;">${enemyNameHtml(caster.name)}释放了「圣光」！回复了${actualHeal}点生命值！</span>`);
             return true;
         }
     },
@@ -126,7 +125,7 @@ const skills = {
             caster.def = 500;
             caster.agi = 500;
             caster.divineBlessingTurns = 3;
-            print(`<span style="color: #ffdd44;">安德罗斯释放了「神恩」！攻击力、防御力、灵巧提升至500（持续三回合）！</span>`);
+            print(`<span style="color: #ffdd44;">${enemyNameHtml(caster.name)}释放了「神恩」！攻击力、防御力、灵巧提升至500（持续三回合）！</span>`);
             return true;
         }
     },
@@ -141,7 +140,7 @@ const skills = {
         effect: function(caster) {
             const lethalDamage = gameState.player.maxHp;
             gameState.player.hp = 0;
-            print(`<span style="color: #ff6666;">曼德罗拉的匕首无声地贯穿了你的咽喉——造成 ${lethalDamage} 点无视护甲的伤害！</span>`);
+            print(`<span style="color: #ff6666;">${enemyNameHtml(caster.name)}的匕首无声地贯穿了你的咽喉——造成 ${lethalDamage} 点无视护甲的伤害！</span>`);
             return true;
         }
     },
@@ -161,7 +160,7 @@ const skills = {
             if (casterAgi < playerAgi) {
                 const hpCost = Math.max(1, Math.floor(caster.currentHp * 0.1));
                 caster.currentHp = Math.max(0, caster.currentHp - hpCost);
-                print(`<span style="color: #ff6666;">莉娅娜消耗了${hpCost}点生命值释放真·舍身！</span>`);
+                print(`<span style="color: #ff6666;">${enemyNameHtml(caster.name)}消耗了${hpCost}点生命值释放真·舍身！</span>`);
                 if (caster.currentHp <= 0) return false;
             }
 
@@ -170,7 +169,7 @@ const skills = {
                 if (gameState.player.hp <= 0) break;
                 const damage = calculateDamage(caster.atk, playerDef);
                 gameState.player.hp = Math.max(0, gameState.player.hp - damage);
-                print(`<span style="color: #ff8844;">莉娅娜真·舍身第${hit}击！对你造成${damage}点伤害！</span>`);
+                print(`<span style="color: #ff8844;">${enemyNameHtml(caster.name)}真·舍身第${hit}击！对你造成${damage}点伤害！</span>`);
             }
 
             if (gameState.player.hp <= 0) {
