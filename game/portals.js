@@ -28,7 +28,7 @@ const PORTAL_DEFS = {
     ladder_mine_exit_3:       { targetRoom: "tunnel_exit_3",        travelText: "你顺着木梯爬下矿道..." },
 
     // === 木梯（二号矿道出口→地表，需检查监工）===
-    // ladder 特殊处理，见 usePortal() 中的 supervisor_stone_check
+    // ladder 特殊处理，见 useSupervisorLadder()
 
     // === 入口类 ===
     wooden_hut:               { targetRoom: "hut_floor1",           travelText: "你推开木门，陈旧的木头气味扑面而来..." },
@@ -68,251 +68,103 @@ const PORTAL_DEFS = {
     tunnel_entrance:          { targetRoom: "basement",             travelText: "你小心翼翼地钻进了地道..." },
 };
 
-// 使用传送门（统一入口，取代原来30+个else-if分支）
+// 所有通道均交给 relocateTo 即时切换，钥匙和守卫条件仍在入口处检查。
 function usePortal(portalId) {
+    if (portalId === 'ladder') return useSupervisorLadder();
     const portalDef = PORTAL_DEFS[portalId];
-    if (!portalDef) {
-        print(`<span style="color: #ff6666;">该传送门未定义: ${portalId}</span>`);
-        return;
+    if (!portalDef) { print(`该传送门未定义: ${portalId}`); return false; }
+    if (battleState.inBattle) { print('战斗中无法使用传送通道。'); return false; }
+    if (portalDef.requiresKey && !gameState.player.inventory.some(item => item && item.id === portalDef.requiresKey)) {
+        print(`<span style="color: #ffaa66;">${portalDef.keyFailMsg}</span>`);
+        return false;
     }
-
-    // 1. 钥匙检查
-    if (portalDef.requiresKey) {
-        const hasKey = gameState.player.inventory.some(item => item && item.id === portalDef.requiresKey);
-        if (!hasKey) {
-            print("");
-            print(`<span style="color: #ffaa66;">═══════════════════════════</span>`);
-            print(`<span style="color: #ffaa66;">${portalDef.keyFailMsg}</span>`);
-            print(`<span style="color: #ffaa66;">═══════════════════════════</span>`);
-            return;
-        }
+    const guardedRooms = { castle_gate_door: 'count_castle_gate', dungeon_door: 'dungeon_entrance' };
+    const guardRoom = guardedRooms[portalId];
+    if (guardRoom && typeof hasAliveGuardsInRoom === 'function' && hasAliveGuardsInRoom(guardRoom)) {
+        print('卫兵挡在门前，必须先解决此处的卫兵才能使用这扇门。');
+        return false;
     }
-
-    // 2. 卫兵把守的门：所在房间仍有存活卫兵时无法开启
-    const GUARDED_DOORS = [
-        { portalId: 'castle_gate_door', guardRoom: 'count_castle_gate' },
-        { portalId: 'dungeon_door', guardRoom: 'dungeon_entrance' }
-    ];
-    const guardedDoor = GUARDED_DOORS.find(d => d.portalId === portalId);
-    if (guardedDoor && typeof hasAliveGuardsInRoom === 'function' && hasAliveGuardsInRoom(guardedDoor.guardRoom)) {
-        print(`<span style="color:#ff6666;">卫兵挡在门前，必须先解决此处的卫兵才能使用这扇门。</span>`);
-        return;
-    }
-
-    // 3. 特殊处理：二号矿道出口的木梯（需要监工检查）
-    if (portalId === 'ladder') {
-        useSupervisorLadder();
-        return;
-    }
-
-    // 3. 标准传送
-    clearDetailPanel();
-    currentPanel = null;
-    print("");
-
-    if (portalDef.travelText) {
-        print(`<span style="color: ${portalDef.requiresKey ? '#aaffaa' : '#cc9966'};">${portalDef.travelText}</span>`);
-        print("");
-    }
-
-    // 显示遮罩（有文本时）
-    if (portalDef.travelText && portalDef.travelText.length > 20) {
-        UI.setOverlay(true);
-    }
-
-    const delay = portalDef.travelText ? (portalDef.travelText.length > 20 ? 1500 : 800) : 0;
-
-    setTimeout(() => {
-        gameState.player.location = portalDef.targetRoom;
-
-        if (UI.elements.overlay && UI.elements.overlay.classList.contains('active')) {
-            UI.setOverlay(false);
-        }
-
-        // 传送后触发剧情检查
-        if (typeof StoryEngine !== 'undefined' && StoryEngine.loaded) {
-            StoryEngine.check();
-        }
-
-        look();
-        updateMinimap();
-        updateSceneInfo();
-    }, delay);
+    return relocateTo(portalDef.targetRoom, { travelText: portalDef.travelText });
 }
 
-// 监工木梯（特殊逻辑：需要99块石块）
-function useSupervisorLadder() {
+// 和平放行：仅扣除一次100块石块，监工仍然留在原地。
+function handInSupervisorStones() {
+    if (battleState.inBattle) {
+        print(`<span style="color: #ffaaaa;">战斗中无法上交石块。</span>`);
+        return false;
+    }
     const room = gameState.world[gameState.player.location];
-    const hasSupervisor = room.npcs && room.npcs.includes('mine_supervisor');
-
-    clearDetailPanel();
-    currentPanel = null;
-    print("");
-
-    if (hasSupervisor) {
-        const stoneCount = gameState.player.inventory.filter(item => item.id === 'stone').length;
-        if (stoneCount < 99) {
-            print(`<span style="color: #ff6666;">监工拦住了你：「石块不够！九十九块，一块都不能少！」</span>`);
-            print(`<span style="color: #aaa;">你目前有 ${stoneCount} 块石块，还需要 ${99 - stoneCount} 块。</span>`);
-            return;
-        }
-
-        // 消耗99个石块
-        let removed = 0;
-        gameState.player.inventory = gameState.player.inventory.filter(item => {
-            if (item.id === 'stone' && removed < 99) {
-                removed++;
-                return false;
-            }
-            return true;
-        });
-
-        print(`你将 ${removed} 块石块交给监工。`);
-        print(`<span style="color: #aaffaa;">监工挥了挥手：「滚吧，别让我再看见你。」</span>`);
-
-        // 移除监工
-        const supervisorIndex = room.npcs.indexOf('mine_supervisor');
-        if (supervisorIndex > -1) {
-            room.npcs.splice(supervisorIndex, 1);
-        }
+    if (gameState.player.location !== 'tunnel_exit' || !room?.npcs?.includes('mine_supervisor')) {
+        print("这里没有可以接收石块的监工。");
+        return false;
     }
-
-    print("你爬上木梯，推开头顶的石板...");
-    print("");
-
-    setTimeout(() => {
-        gameState.player.location = 'mine_exit';
-        look();
-        updateMinimap();
-        updateSceneInfo();
-    }, 1500);
+    if (gameState.gameFlags.mineSupervisorPaid) {
+        print("你已经交齐石块，监工不会再阻拦你。");
+        return true;
+    }
+    const isStone = item => item && (item.templateId || item.id) === 'stone';
+    const stoneCount = gameState.player.inventory.filter(isStone).length;
+    if (stoneCount < 100) {
+        print(`<span style="color: #ff6666;">监工拦住了你：「石块不够！一百块，一块都不能少！」</span>`);
+        print(`<span style="color: #aaa;">你目前有 ${stoneCount} 块石块，还需要 ${100 - stoneCount} 块。</span>`);
+        return false;
+    }
+    let removed = 0;
+    gameState.player.inventory = gameState.player.inventory.filter(item => {
+        if (isStone(item) && removed < 100) {
+            removed++;
+            return false;
+        }
+        return true;
+    });
+    gameState.gameFlags.mineSupervisorPaid = true;
+    print("你将100块石块交给监工。");
+    print(`<span style="color: #aaffaa;">监工用靴尖拨了拨石堆，数完才把铁棍挪开：「够数了。滚，别在这儿碍眼。」</span>`);
+    updateSceneInfo();
+    if (currentPanel === 'npc_detail' && currentDetailNPC === 'mine_supervisor') showNPCInfo('mine_supervisor');
+    return true;
 }
 
-// ★ 离开教堂门廊 → 教堂大门（正门出口）
+function useSupervisorLadder() {
+    if (battleState.inBattle) { print('战斗中无法使用木梯。'); return false; }
+    if (gameState.player.location !== 'tunnel_exit') { print('这里无法使用二号矿道出口的木梯。'); return false; }
+    const room = gameState.world.tunnel_exit;
+    if (room.npcs?.includes('mine_supervisor') && !gameState.gameFlags.mineSupervisorPaid && !handInSupervisorStones()) return false;
+    return relocateTo('mine_exit', { travelText: '你爬上木梯，推开石板，来到二号矿井口。' });
+}
+
 function leaveChurchToGate() {
-    clearDetailPanel();
-    currentPanel = null;
-    print("");
-    UI.setOverlay(true);
-    print(`<span style="color: #ddbb88;">你推开教堂厚重的橡木大门，走出教堂...</span>`);
-    setTimeout(() => {
-        gameState.player.location = 'church_gate';
-        UI.setOverlay(false);
-        look();
-        updateMinimap();
-        updateSceneInfo();
-    }, 1200);
+    return relocateTo('church_gate', { travelText: '你推开橡木大门，走出教堂。' });
 }
 
-// ★ 离开教堂圣坛 → 后门
 function leaveChurchToBackDoor() {
-    clearDetailPanel();
-    currentPanel = null;
-    print("");
-    UI.setOverlay(true);
-    print(`<span style="color: #ddbb88;">你推开圣坛后方的窄门，走了出去...</span>`);
-    setTimeout(() => {
-        gameState.player.location = 'church_back_door';
-        UI.setOverlay(false);
-        look();
-        updateMinimap();
-        updateSceneInfo();
-    }, 1200);
+    return relocateTo('church_back_door', { travelText: '你推开圣坛后方的窄门，走出教堂。' });
 }
 
-// ★ 桑华山矿场入口：从卡伦镇外折返矿场深处
 function enterSanghuashanMine() {
-    clearDetailPanel();
-    currentPanel = null;
-    UI.setOverlay(true);
-    print(`<span style="color:#ff8844;">你沿着熟悉的小路，向桑华山矿场的方向折返……</span>`);
-    setTimeout(() => {
-        // 返回 272 号房间（mountain_path_13），而非 1 号房间
-        gameState.player.location = 'mountain_path_13';
-        UI.setOverlay(false);
-        look();
-        updateMinimap();
-        updateSceneInfo();
-        StoryEngine.check();
-    }, 1500);
+    return relocateTo('mountain_path_13', { travelText: '你沿着熟悉的小路，折返桑华山矿场。' });
 }
 
-// ★ 从后门进入教堂圣坛
 function enterChurchAltar() {
-    clearDetailPanel();
-    currentPanel = null;
-    print("");
-    UI.setOverlay(true);
-    print(`<span style="color: #ddbb88;">你推开厚重的木门，走入教堂深处...</span>`);
-    setTimeout(() => {
-        gameState.player.location = 'church_altar';
-        UI.setOverlay(false);
-        look();
-        updateMinimap();
-        updateSceneInfo();
-    }, 1200);
+    return relocateTo('church_altar', { travelText: '你推开后门，走进教堂圣坛。' });
 }
 
-// ★ 进入教堂门廊
 function enterChurchPorch() {
-    clearDetailPanel();
-    currentPanel = null;
-    print("");
-    UI.setOverlay(true);
-    print(`<span style="color: #ddbb88;">你推开厚重的橡木门，门轴发出低沉的吱呀声...</span>`);
-    setTimeout(() => {
-        gameState.player.location = 'church_porch';
-        UI.setOverlay(false);
-        look();
-        updateMinimap();
-        updateSceneInfo();
-    }, 1200);
+    return relocateTo('church_porch', { travelText: '你推开橡木大门，踏入教堂门廊。' });
 }
 
-// 撤走的梯子（四号矿道出口↔四号矿井口双向，不消耗）
-function useRemovedLadder() {
-    const currentLoc = gameState.player.location;
-
-    if (currentLoc !== 'tunnel_exit_4' && currentLoc !== 'mine_exit_4') {
-        print(`<span style="color: #ffaa66;">这里无法使用撤走的梯子。</span>`);
-        print(`<span style="color: #888;">（这架梯子只能在四号矿道出口或四号矿井口使用...）</span>`);
-        return;
+function useRemovedLadder(itemId) {
+    if (battleState.inBattle) { print('战斗中无法使用梯子。'); return false; }
+    const ladder = gameState.player.inventory.find(item =>
+        (!itemId || item.id === itemId) && itemTemplateId(item) === 'removed_ladder');
+    if (!ladder) { print('你需要先将撤走的梯子拾取到背包中。'); return false; }
+    const loc = gameState.player.location;
+    if (loc !== 'tunnel_exit_4' && loc !== 'mine_exit_4') {
+        print('这架梯子只能在四号矿道出口或四号矿井口使用。');
+        return false;
     }
-
-    clearDetailPanel();
-    currentPanel = null;
-    print("");
-
-    UI.setOverlay(true);
-
-    const isGoingUp = currentLoc === 'tunnel_exit_4';
-    const targetRoom = isGoingUp ? 'mine_exit_4' : 'tunnel_exit_4';
-    const lines = isGoingUp
-        ? ["你将撤走的梯子架在岩壁上...", "梯子稳稳地架在岩壁与地面之间。",
-           "你顺着梯子向上爬去...", "头顶被封堵的木板被推开，月光洒落进来。"]
-        : ["你将撤走的梯子放入被破开的井口...", "梯子稳稳地架在井壁之间。",
-           "你顺着梯子向下爬去...", "黑暗和腐臭的气息扑面而来。"];
-
-    print(lines[0]);
-
-    let delay = 1000;
-    const lineTimings = [1000, 2300, 3600, 4900];
-
-    for (let i = 1; i < lines.length; i++) {
-        setTimeout(() => {
-            print(`<span class="story-text">${lines[i]}</span>`);
-            if (i === lines.length - 1) {
-                setTimeout(() => {
-                    gameState.player.location = targetRoom;
-                    print("");
-                    print(`<span style="color: #aaffaa;">你来到了${isGoingUp ? '四号矿井口' : '四号矿道出口'}...</span>`);
-
-                    UI.setOverlay(false);
-                    look();
-                    updateMinimap();
-                    updateSceneInfo();
-                }, delay);
-            }
-        }, lineTimings[i]);
-    }
+    const up = loc === 'tunnel_exit_4';
+    return relocateTo(up ? 'mine_exit_4' : 'tunnel_exit_4', {
+        travelText: up ? '你架好梯子爬出井口，来到四号矿井口。' : '你架好梯子爬下井口，回到四号矿道出口。'
+    });
 }

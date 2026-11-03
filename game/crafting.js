@@ -47,14 +47,14 @@ function showWorkbenchCategory(category) {
     const player = gameState.player;
     let html = makeTitle(`🔨 ${cat.name}`) + centerLine();
     cat.items.forEach(recipe => {
+        const product = recipe.resultTemplate && ITEM_TEMPLATES[recipe.resultTemplate];
         let hasAll = true;
         const matStatus = recipe.materialIds.map(mat => {
             const count = player.inventory.filter(i => itemMatchesMaterial(i, mat.id)).length;
             const ok = count >= mat.count; if (!ok) hasAll = false;
             return { name: getItemInfoById(mat.id)?.name || mat.id, need: mat.count, have: count, ok };
         });
-        let effectText = recipe.resultEffect || '';
-        if (recipe.atk) effectText += ` | 攻击+${recipe.atk}`; if (recipe.def) effectText += ` | 防御+${recipe.def}`; if (recipe.agi) effectText += ` | 灵巧${recipe.agi>0?'+':''}${recipe.agi}`;
+        let effectText = product ? `攻击 ${product.atk || 0} · 防御 ${product.def || 0} · 灵巧 ${product.agi || 0}${product.armorPenetration ? ` · 穿透 ${product.armorPenetration*100}%` : ''}${product.physicalDamageReduction ? ` · 物理减伤 ${product.physicalDamageReduction*100}%` : ''}` : (recipe.resultEffect || '');
         html += `<div style="margin:10px 0;padding:10px;background:#2a2a2a;border-radius:4px;border-left:3px solid ${hasAll?'#88ccff':'#555'};"><div style="color:${hasAll?'#88ccff':'#666'};font-weight:bold;${hasAll?'cursor:pointer;text-decoration:underline':''}" ${hasAll?`onclick="startCraftingProcess('${category}','${recipe.id}')"`:''}>${cat.icon} ${recipe.name}</div><div style="color:#aaa;font-size:12px;">${recipe.desc}</div><div style="color:#66ff66;font-size:11px;">效果：${effectText}</div><div style="font-size:11px;">${matStatus.map(m=>`<span style="color:${m.ok?'#66ff66':'#ff6666'};">${m.ok?'✓':'✗'} ${m.name}×${m.need}(${m.have})</span>`).join(' ')}</div>${hasAll?`<span style="color:#88ccff;cursor:pointer;" onclick="startCraftingProcess('${category}','${recipe.id}')">🔨开始锻造</span>`:`<span style="color:#555;">🔨材料不足</span>`}</div>`;
     });
     html += centerLine() + `<div style="color:#aaa;cursor:pointer;" onclick="useWorkbench('workbench')">↩️返回</div>`;

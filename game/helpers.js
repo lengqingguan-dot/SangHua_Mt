@@ -7,20 +7,27 @@ function clearOutput() { UI.clearOutput(); }
 function printToDetail(content) { UI.printToDetail(content); }
 function clearDetailPanel() { UI.clearDetail(); }
 
-/** 统一传送后处理：移动到指定房间并刷新所有UI */
+// 所有场景传送共用同一种字幕样式，不依赖文字长度或钥匙类型。
+const TRAVEL_TEXT_COLOR = '#cc9966';
+
+/** 即时传送：切换位置，输出一行字幕，再刷新场景和剧情。 */
 function relocateTo(roomId, options = {}) {
-    const { travelText, travelColor = '#cc9966', delay = 0, callback, skipCheck = false } = options;
-    if (travelText) { print(`<span style="color: ${travelColor};">${travelText}</span>`); print(""); }
-    const doRelocate = () => {
-        gameState.player.location = roomId;
-        if (typeof StoryEngine !== 'undefined' && StoryEngine.loaded && !skipCheck) StoryEngine.check();
-        look();
-        updateMinimap();
-        updateSceneInfo();
-        if (callback) callback();
-    };
-    if (delay > 0) setTimeout(doRelocate, delay);
-    else doRelocate();
+    const { travelText, callback, skipCheck = false } = options;
+    if (battleState.inBattle) { print('战斗中无法使用传送通道。'); return false; }
+    const room = gameState.world[roomId];
+    if (!room) { print('传送失败：目的地不存在。'); return false; }
+    clearDetailPanel();
+    currentPanel = null;
+    UI.setOverlay(false);
+    gameState.player.location = roomId;
+    const caption = String(travelText || '').replace(/<[^>]*>|\s+/g, ' ').trim() || `你来到了「${room.name}」。`;
+    print(`<span class="travel-text" style="color: ${TRAVEL_TEXT_COLOR};">${caption}</span>`);
+    look();
+    updateMinimap();
+    updateSceneInfo();
+    if (typeof StoryEngine !== 'undefined' && StoryEngine.loaded && !skipCheck) StoryEngine.check();
+    if (callback) callback();
+    return true;
 }
 
 function centerLine() {
@@ -36,6 +43,7 @@ function makePanelFooter(onclick, label = '关闭', icon = '✕') {
 }
 
 function getItemTypeName(type) {
+    if (type === 'skill_book') return '技能书';
     const map = { weapon: '武器', armor: '防具', consumable: '消耗品', readable: '读物', misc: '杂物', accessory: '饰品', limb: '肢体' };
     return map[type] || type;
 }
@@ -47,6 +55,7 @@ function getCharacterTypeName(type) {
 
 function getItemEmoji(item) {
     if (!item) return '📦';
+    if (item.type === 'skill_book') return '📚';
     if (item.type === 'weapon') return '⚔️';
     if (item.type === 'armor') return '🛡️';
     if (item.type === 'consumable') return '🧪';
@@ -115,9 +124,42 @@ function scoreToQuality(score) {
     return 'normal';
 }
 
+function stripLimbMeasurementSuffix(name) {
+    return String(name || '').replace(/[（(]\s*(?:\d+(?:\.\d+)?\s*码|[A-Z]\s*罩杯|未知码|未知罩杯)\s*[）)]/gi,'').trim();
+}
+function limbMeasurementPart(item) {
+    if(!item || item.id?.includes('corpse')) return '';
+    if(item.limbPart==='foot' || item.limbPart==='breast') return item.limbPart;
+    if(item.ingredientType==='foot' || item.ingredientType==='breast') return item.ingredientType;
+    if(/(?:^|_)foot(?:_|$)/.test(item.id || '') || item.type==='limb' && /脚/.test(item.name || '')) return 'foot';
+    if(/(?:^|_)breast(?:_|$)/.test(item.id || '') || item.type==='limb' && /乳房/.test(item.name || '')) return 'breast';
+    return '';
+}
+function getLimbMeasurements(item) {
+    const part=limbMeasurementPart(item), text=`${item?.name || ''} ${item?.desc || ''}`;
+    const foot=part==='foot' && (String(item.footSize || '').match(/\d+(?:\.\d+)?/)?.[0] || text.match(/(\d+(?:\.\d+)?)\s*码/)?.[1]);
+    const cup=part==='breast' && (String(item.cup || '').match(/[A-Z]/i)?.[0] || text.match(/([A-Z])\s*罩杯/i)?.[1]);
+    return {part,footSize:foot?`${foot}码`:'',cup:cup?`${cup.toUpperCase()}罩杯`:''};
+}
+function normalizeLimbMeasurements(item) {
+    if(!item) return item;
+    const {part,footSize,cup}=getLimbMeasurements(item);
+    if(part) {
+        item.name=stripLimbMeasurementSuffix(item.name);
+        const value=footSize || cup;
+        if(footSize) item.footSize=footSize;
+        if(cup) item.cup=cup;
+        if(value && !String(item.desc || '').includes(value)) item.desc=`${footSize?'脚码':'尺寸'}：${value}。\n${item.desc || ''}`;
+    }
+    if(item.generatedLimbs) Object.values(item.generatedLimbs).forEach(parts=>parts.forEach(normalizeLimbMeasurements));
+    if(item.limbTemplates) item.limbTemplates.forEach(part=>{part.name=stripLimbMeasurementSuffix(part.name)});
+    return item;
+}
+
 // 肢体显示名：按品质着色，不带前缀标签
 function getLimbDisplayName(item) {
     if (!item) return '';
+    normalizeLimbMeasurements(item);
     if (!item.rarity) return item.name;
     return `<span style="color:${getRarityColor(item.rarity)};">${item.name}</span>`;
 }
@@ -125,17 +167,20 @@ function getLimbDisplayName(item) {
 // 列表显示名：肢体按品质着色（无前缀），其余沿用装备前缀规则
 function getInventoryDisplayName(item) {
     if (!item) return '';
+    normalizeLimbMeasurements(item);
     if (item.id === 'red_banner') return `<span class="item-name--red">${item.name}</span>`;
     if (item.type === 'limb') return getLimbDisplayName(item);
     return item.rarity ? getEquipmentDisplayName(item) : item.name;
 }
 
-// 堆叠键：尸体各自独立；肢体按 名称/品质/评分 区分（避免不同品质或码数罩杯堆叠）
+// 尺寸保留为独立属性参与堆叠，不依赖物品名称中的括号。
 function getItemStackKey(item) {
     if (!item) return '';
+    normalizeLimbMeasurements(item);
     if (item.id && item.id.includes('corpse')) return item.id;
-    if (item.type === 'limb') {
-        return `${item.name}::${item.rarity || 'none'}::${item.score !== undefined ? item.score : 'x'}`;
+    if (item.type === 'limb' || limbMeasurementPart(item)) {
+        const size=getLimbMeasurements(item);
+        return `${item.name}::${item.rarity || 'none'}::${item.score !== undefined ? item.score : 'x'}::${size.footSize}::${size.cup}`;
     }
     return item.name;
 }
@@ -177,6 +222,7 @@ function isItemUnpickable(itemOrId) {
     const itemId = (typeof itemOrId === 'string') ? itemOrId : (item ? item.id : '');
     if (item && item.notPickable) return true;
     if (item && item.type === 'portal') return true;
+    if (item && itemTemplateId(item) === 'removed_ladder') return false;
     const unpickablePatterns = [
         'ladder', 'dynamite', 'heavy_wooden_door', 'medium_wooden_door',
         'spiral_stairs', 'stairs_', 'stove', 'milker', 'workbench',
@@ -264,6 +310,7 @@ function useMagicMirror() {
 }
 
 function teleportViaMirror(roomId) {
+    if (battleState.inBattle) { print('战斗中无法使用魔镜。'); return false; }
     const destination = MIRROR_TELEPORT_DESTINATIONS.find(dest => dest.id === roomId);
     if (!destination || !isMirrorDestinationUnlocked(destination)) {
         print(`<span style="color: #ffaaaa;">魔镜尚未记录这个传送点。</span>`);
@@ -274,21 +321,13 @@ function teleportViaMirror(roomId) {
         print(`<span style="color: #ffaaaa;">传送失败：目的地不存在。</span>`);
         return;
     }
-    gameState.player.location = roomId;
-    clearDetailPanel();
-    currentPanel = null;
     clearOutput();
-    print(`<span style="color: #6688ff;">🌀 魔镜发出耀眼的蓝光，你感到一阵眩晕...</span>`);
-    print(`<span style="color: #aaffaa;">你被传送到了「${room.name}」。</span>`);
-    print("");
-    look();
-    updateMinimap();
-    updateSceneInfo();
-    StoryEngine.check();
+    return relocateTo(roomId, { travelText: `魔镜泛起蓝光，你已来到「${room.name}」。` });
 }
 
 function isItemSellable(item) {
     if (!item) return false;
+    if (item.type === 'skill_book') return false; // 书籍只允许从详情确认出售。
     if (item.id && item.id.includes('corpse')) return false;
     if (item.type === 'limb' || item.story) return false;
     if (item.type === 'important') return false;
@@ -299,13 +338,14 @@ function isItemSellable(item) {
 
 function getItemSellPrice(item) {
     if (!item) return 0;
+    if (Number.isFinite(item.sellPrice)) return item.sellPrice;
     if (item.type === 'weapon' || item.type === 'armor' || item.type === 'accessory') {
         const atk = item.atk || 0;
         const def = item.def || 0;
         const agi = Math.abs(item.agi || 0);
         let price = atk * 3 + def * 3 + agi * 2;
         if (item.rarity) {
-            const rarityMultiplier = { normal: 1, fine: 1.5, rare: 2.5, epic: 4, legendary: 8 };
+            const rarityMultiplier = { normal: 1, good: 1.5, rare: 2.5, epic: 4, legendary: 8, mythic: 12 };
             price = Math.floor(price * (rarityMultiplier[item.rarity] || 1));
         }
         return Math.max(1, price);
@@ -318,29 +358,15 @@ function getItemSellPrice(item) {
 
 function hasKnightSetBonus() {
     const eq = gameState.player.equipment;
+    if (typeof itemTemplateId === 'function') return ['knight_greatsword','crafted_knight_greatsword'].includes(itemTemplateId(eq.weapon)) && ['knight_armor','crafted_knight_armor'].includes(itemTemplateId(eq.armor)) && itemTemplateId(eq.accessory)==='knight_emblem';
     return eq.weapon && (eq.weapon.id === 'knight_greatsword' || eq.weapon.id.startsWith('crafted_knight_greatsword'))
         && eq.armor && (eq.armor.id === 'knight_armor' || eq.armor.id.startsWith('crafted_knight_armor'))
         && eq.accessory && eq.accessory.id === 'knight_emblem';
 }
 
-// ★ 检测套装状态变化并同步技能（供装备/卸下时调用）
+// 装備变动只刷新技能条件，不授予或删除技能。
 function checkKnightSetChange() {
-    const skills = gameState.player.skills;
-    const hadVow = skills.includes('player_vow');
-    const hadSacrifice = skills.includes('player_sacrifice');
-    const hasSet = hasKnightSetBonus();
-
-    if (hasSet && (!hadVow || !hadSacrifice)) {
-        if (!hadVow) skills.push('player_vow');
-        if (!hadSacrifice) skills.push('player_sacrifice');
-        print(`<span style="color: #ffd700; font-weight: bold;">✨ 骑士套装效果触发！获得临时技能「誓言」「舍身」</span>`);
-    } else if (!hasSet && (hadVow || hadSacrifice)) {
-        const idx1 = skills.indexOf('player_vow');
-        if (idx1 > -1) skills.splice(idx1, 1);
-        const idx2 = skills.indexOf('player_sacrifice');
-        if (idx2 > -1) skills.splice(idx2, 1);
-        print(`<span style="color: #888;">骑士套装效果已消失，临时技能已移除。</span>`);
-    }
+    if (typeof ensureSkillProgress === 'function') ensureSkillProgress();
 }
 
 function showStatus() {

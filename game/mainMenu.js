@@ -54,6 +54,9 @@ function exitGame() {
 
 // 返回主菜单
 function backToMainMenu() {
+    if (typeof cancelBattleTimers === 'function') cancelBattleTimers();
+    if (battleState.inBattle) battleState.paused = true;
+    if (typeof _stopBackgroundBattleLoop === 'function') _stopBackgroundBattleLoop();
     document.getElementById('main-menu').style.display = 'block';
     document.getElementById('game-container').style.display = 'none';
 }
@@ -67,6 +70,9 @@ function clearOutputWindow() {
 
 // 初始化游戏
 function initializeGame() {
+    window._onBattleEnd = null;
+    if (typeof cancelBattleTimers === 'function') cancelBattleTimers();
+    if (typeof _stopBackgroundBattleLoop === 'function') _stopBackgroundBattleLoop();
     gameState = getDefaultGameState();
     if (typeof resetElaineAppearance === 'function') resetElaineAppearance();
     if (typeof resetMandorolaIdentity === 'function') resetMandorolaIdentity();

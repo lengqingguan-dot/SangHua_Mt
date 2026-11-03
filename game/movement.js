@@ -130,7 +130,10 @@ function checkHostileNPCs(roomId) {
 
     UI.setOverlay(true);
 
-    setTimeout(() => {
+    const encounterWorld = gameState.world;
+    setTimeout(function beginHostileEncounter() {
+        if (gameState.world !== encounterWorld || gameState.player.location !== roomId || battleState.inBattle) return;
+        if (typeof saveLoadInProgress !== 'undefined' && saveLoadInProgress) { setTimeout(beginHostileEncounter,100); return; }
         print("");
         const madMiners = hostileNPCs.filter(id => id === 'mad_miner');
         const madSupervisors = hostileNPCs.filter(id => id === 'mad_supervisor');
@@ -160,10 +163,8 @@ function moveByButton(direction) {
     }
     if (currentPanel !== null) {
         closeCurrentPanel();
-        setTimeout(() => move(direction), 50);
-    } else {
-        move(direction);
     }
+    return move(direction);
 }
 
 // 关闭当前面板

@@ -39,7 +39,7 @@ const skills = {
             battleState.vowUsed = true;
             const boost = Math.floor(gameState.player.def * 0.2);
             gameState.player.def += boost;
-            print(`<span style="color: #66aaff;">你释放了「誓言」！防御力永久提升${boost}点！</span>`);
+            print(`<span style="color: #66aaff;">你释放了「誓言」！本场战斗防御力提升${boost}点！</span>`);
             return true;
         }
     },
@@ -59,7 +59,7 @@ const skills = {
             }
             const aliveEnemies = battleState.enemies.filter(e => e.currentHp > 0);
             if (aliveEnemies.length === 0) { gameState.player.sp += this.cost; return false; }
-            const targetEnemy = aliveEnemies[0];
+            const targetEnemy = typeof resolvePlayerTarget === 'function' ? resolvePlayerTarget() : aliveEnemies[0];
             const playerAgi = getCharacterAgility(gameState.player);
             const enemyAgi = targetEnemy.agi || 0;
 
@@ -167,14 +167,14 @@ const skills = {
             const playerDef = getCharacterDefense(gameState.player);
             for (let hit = 1; hit <= 2; hit++) {
                 if (gameState.player.hp <= 0) break;
-                const damage = calculateDamage(caster.atk, playerDef);
+                const damage = calculateDamage(combatUnitStat(caster, 'atk'), playerDef);
                 gameState.player.hp = Math.max(0, gameState.player.hp - damage);
                 print(`<span style="color: #ff8844;">${enemyNameHtml(caster.name)}真·舍身第${hit}击！对你造成${damage}点伤害！</span>`);
             }
 
             if (gameState.player.hp <= 0) {
                 print(`<span style="color: #ff6666;">你倒下了...</span>`);
-                setTimeout(() => battleEnd(false), 1000);
+                scheduleCombatStep('defeat', 1000);
                 return false;
             }
             print(`<span style="color: #aaffaa;">你的 HP: ${gameState.player.hp}/${gameState.player.maxHp}</span>`);

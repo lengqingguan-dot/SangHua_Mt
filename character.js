@@ -88,7 +88,8 @@ function talkToNPC(npcId) {
 
 // 计算角色攻击力（基础 + 装备）
 function getCharacterAttack(character) {
-    const baseAtk = character.atk !== undefined ? character.atk : 1;
+    const baseAtk = character.inventory !== undefined && typeof playerBattleStat === 'function'
+        ? playerBattleStat(character.atk ?? 1, 'atk') : (character.atk ?? 1);
     let equipAtk = 0;
     let atkMultiplier = 1;
     
@@ -102,6 +103,7 @@ function getCharacterAttack(character) {
         }
         // 饰品百分比加成
         if (character.equipment.accessory) {
+            equipAtk += character.equipment.accessory.atk || 0;
             if (character.equipment.accessory.atkPercent) {
                 atkMultiplier += character.equipment.accessory.atkPercent;
             }
@@ -114,6 +116,7 @@ function getCharacterAttack(character) {
 // 计算角色防御力（基础 + 装备）
 function getCharacterDefense(character) {
     let baseDef = character.def !== undefined ? character.def : 0;
+    if (character.inventory !== undefined && typeof playerBattleStat === 'function') baseDef = playerBattleStat(baseDef, 'def');
     let defMultiplier = 1;
     
     // 如果是玩家（有 inventory 属性），额外计算装备加成
@@ -126,6 +129,7 @@ function getCharacterDefense(character) {
         }
         // 饰品百分比加成
         if (character.equipment.accessory) {
+            baseDef += character.equipment.accessory.def || 0;
             if (character.equipment.accessory.defPercent) {
                 defMultiplier += character.equipment.accessory.defPercent;
             }
@@ -138,6 +142,7 @@ function getCharacterDefense(character) {
 // 计算角色灵巧（基础 + 装备）
 function getCharacterAgility(character) {
     let baseAgi = character.agi !== undefined ? character.agi : 0;
+    if (character.inventory !== undefined && typeof playerBattleStat === 'function' && playerBattleStat(1, 'agi') === 0) return 0;
     
     // 如果是玩家（有 inventory 属性），额外计算装备加成
     if (character.inventory !== undefined) {

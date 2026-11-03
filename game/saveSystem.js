@@ -156,10 +156,21 @@ function restoreDynamicItems(dynamicItems) {
 }
 
 // 保存游戏
+let saveLoadInProgress = false;
 async function saveGame() {
+    if (saveLoadInProgress) return false;
+    if (battleState.inBattle && typeof window._onBattleEnd==='function' && !battleState.completionHandler) {
+        print('此 Mod 战斗使用了无法保存的回调，请在战斗结束后保存。'); return false;
+    }
+    saveLoadInProgress = true;
+    const resume = typeof pauseCombatForIO === 'function' ? pauseCombatForIO() : () => {};
     try {
         const saveData = {
-            version: 2,
+            version: 4,
+            activeDungeon: gameState.activeDungeon || null,
+            exploration: gameState.exploration || null,
+            entitySequence: gameState.entitySequence || 0,
+            combatState: typeof snapshotCombat === 'function' ? snapshotCombat() : null,
             timestamp: Date.now(),
             player: gameState.player,
             world: gameState.world,
@@ -200,12 +211,18 @@ async function saveGame() {
         } else {
             print("❌ 保存失败: " + e.message);
         }
+    } finally {
+        saveLoadInProgress = false;
+        resume();
     }
 }
 
 // 读取存档
 async function loadGame() {
+    if (saveLoadInProgress) return false;
+    saveLoadInProgress = true;
     currentPanel = null;
+    const resume = typeof pauseCombatForIO === 'function' ? pauseCombatForIO() : () => {};
     try {
         const options = {
             types: [{ description: '游戏存档', accept: { 'application/json': ['.json', '.sav'] } }]
@@ -216,6 +233,8 @@ async function loadGame() {
         if (!saved) { print("❌ 存档文件为空。"); return false; }
 
         const loaded = JSON.parse(saved);
+        if (!loaded || !loaded.player || !loaded.world || !Array.isArray(loaded.player.inventory) || !loaded.player.equipment) throw new Error('缺少玩家或世界数据');
+        if (loaded.version > 4) throw new Error('此存档来自更新版本');
 
         cleanupDeprecatedWorldContent(loaded);
 
@@ -238,7 +257,9 @@ async function loadGame() {
             else gameState.player.inventory.push(legacyBodyArmor);
             delete gameState.player.equipment.body;
         }
+        if (!loaded.version || loaded.version < 3) migrateLegacyPlayerBonuses(gameState.player);
         if (typeof applyPlayerLevelBalance === 'function') applyPlayerLevelBalance(gameState.player, true);
+        if (typeof migrateProgression029 === 'function') migrateProgression029(gameState, loaded.version || 1);
         if (typeof resetElaineAppearance === 'function') resetElaineAppearance();
         if (typeof resetMandorolaIdentity === 'function') resetMandorolaIdentity();
         if (typeof resetCoachmanState === 'function') resetCoachmanState();
@@ -262,6 +283,7 @@ async function loadGame() {
         repairKarenTownMainRoute(gameState, latestWorld);
         repairHiddenPathRoute(gameState, latestWorld);
         if (typeof repairLoadedAcademyDungeon === 'function') repairLoadedAcademyDungeon();
+        if (typeof repairExploration029 === 'function') repairExploration029();
         migrateFriendOrFoeQuest(gameState);
 
         // 兼容新增主线5前已经完成主线4、但仍停在驿站的存档。
@@ -325,13 +347,18 @@ async function loadGame() {
         }
 
         print("📀 记忆复苏，你回到了桑华山的矿道中……");
+        if (typeof restoreCombatSnapshot === 'function') restoreCombatSnapshot(loaded.combatState);
         look();
         updateMinimap();
         return true;
     } catch (e) {
+        if (e.name === 'AbortError') { print('读取已取消。'); return false; }
         print("❌ 存档损坏，无法读取。");
         console.error("读档错误:", e);
         return false;
+    } finally {
+        saveLoadInProgress = false;
+        resume();
     }
 }
 
@@ -339,6 +366,11 @@ async function loadGame() {
 function resetGame() {
     currentPanel = null;
     if (confirm('一切将重新开始，确定吗？')) {
+        if (typeof cancelBattleTimers === 'function') cancelBattleTimers();
+        if (typeof _stopBackgroundBattleLoop === 'function') _stopBackgroundBattleLoop();
+        battleState = JSON.parse(JSON.stringify(DEFAULT_BATTLE_STATE));
+        window._onBattleEnd = null;
+        document.body.classList.remove('battle-mode');
         gameState = getDefaultGameState();
         if (typeof resetElaineAppearance === 'function') resetElaineAppearance();
         if (typeof resetMandorolaIdentity === 'function') resetMandorolaIdentity();

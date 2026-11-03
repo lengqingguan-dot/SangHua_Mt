@@ -21,9 +21,10 @@ Object.assign(ITEM_TEMPLATES, {
         id: "ladder",
         name: "木梯（上行）",
         type: "misc",
-        desc: "一架通往地面的木梯，固定在矿道顶部。似乎需要搬够足够的石块作为「交代」才能离开...",
+        desc: "一架通往地面的木梯，固定在矿道顶部。向监工上交100块石块，他就会让开通道；如果监工已被击杀，也可以直接上行。",
         usable: true,
-        customAction: true
+        customAction: true,
+        notPickable: true
     },
     ladder_surface: {
         id: "ladder_surface",
@@ -85,7 +86,7 @@ Object.assign(ITEM_TEMPLATES, {
         id: "removed_ladder",
         name: "撤走的梯子",
         type: "misc",
-        desc: "一架从其他矿道撤下来的木梯，虽然有些破旧但还能使用。据字条所说，这是为了封锁疯疫而撤走的。可以在四号矿道出口和四号矿井口之间来回传送。",
+        desc: "一架从其他矿道撤下来的木梯，虽然有些破旧但还能使用。据字条所说，这是为了封锁疯疫而撤走的。拾取后可在四号矿道出口从背包中使用，架梯爬上四号矿井口；也可在井口使用梯子返回矿道。使用后仍可携带。",
         usable: true,
         customAction: true
     },

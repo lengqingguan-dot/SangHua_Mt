@@ -59,6 +59,11 @@ function showNPCInfo(npcId) {
     if (npc.canTalk && npc.dialogue) {
         html += `<span class="detail-action detail-action--good" onclick="talkToNPCAction('${npcId}')">💬 对话</span>`;
     }
+    const isSupervisorHere = npcId === 'mine_supervisor' && gameState.player.location === 'tunnel_exit'
+        && gameState.world.tunnel_exit.npcs.includes(npcId);
+    if (isSupervisorHere && !gameState.gameFlags.mineSupervisorPaid) {
+        html += `<span class="detail-action detail-action--good" onclick="handInSupervisorStones()">🪨 上交100块石块</span>`;
+    }
     if (typeof StoryEngine !== 'undefined') {
         const activeQuest = StoryEngine.findActiveQuestForNpc(npcId);
         if (activeQuest && activeQuest.questDialogue) {
@@ -84,6 +89,7 @@ function showNPCInfo(npcId) {
     }
 
     html += `</div>`;
+    if (isSupervisorHere && gameState.gameFlags.mineSupervisorPaid) html += `<div class="status-note">石块已交齐，向上的通道已开放，可以使用木梯。</div>`;
     if (isHostile) html += `<div class="status-note">此人物具有敌意，请谨慎选择行动。</div>`;
     html += makePanelFooter('clearDetailPanel()', '关闭人物详情');
     currentDetailNPC = npcId;
@@ -104,6 +110,9 @@ function talkToNPCAction(npcId) {
     let dialogues = npc.dialogue;
     if (isAssaulted && npc.assaultedDialogue) dialogues = npc.assaultedDialogue;
     else if (!isFirstTime) dialogues = npc.repeatDialogue || npc.dialogue;
+    if (npcId === 'mine_supervisor' && gameState.gameFlags.mineSupervisorPaid) {
+        dialogues = ["「石头已经收到了。还堵在这儿干什么？滚，别碍眼！」"];
+    }
 
     if (isFirstTime) {
         StoryEngine.checkFirstTalk(npcId);
@@ -111,7 +120,6 @@ function talkToNPCAction(npcId) {
 
     StoryEngine.playLines({
         lines: dialogues, color: '#ff8844', useNextBtn: true,
-        onEachLine: () => { print("<br>"); },
         onComplete: () => {
             if (isFirstTime) {
                 gameState.talkedNPCs[npcId] = true;

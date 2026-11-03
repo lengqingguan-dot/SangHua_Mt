@@ -6,6 +6,14 @@
 // 后台盟友战斗回合间隔（毫秒）
 const BACKGROUND_BATTLE_TICK = 2000;
 
+function combatUnitStat(unit, key) {
+    return typeof effectiveEnemyStat === 'function' ? effectiveEnemyStat(unit,key) : unit[key];
+}
+function scheduleCombatStep(step, delay) {
+    if (typeof queueBattleStep === 'function') return queueBattleStep(step,delay);
+    return setTimeout(()=> step==='round' ? startNewRound() : step==='defeat' ? battleEnd(false) : executeNextTurn(),delay);
+}
+
 // 敌方名字统一显示为红色，友方/盟友为绿色，玩家为金色
 function enemyNameHtml(name) { return `<span style="color:#ff4444;">${name}</span>`; }
 function allyNameHtml(name) { return `<span style="color:#44ff44;">${name}</span>`; }
@@ -90,8 +98,11 @@ function expandBattleWithRoomGuards(npcIds) {
     if (!room || !room.npcs) return result;
     const hasGuard = result.some(id => GUARD_NPC_IDS.includes(id));
     if (!hasGuard) return result;
+    const included = result.reduce((counts,id)=>{counts[id]=(counts[id] || 0)+1;return counts;},{});
+    const seen = {};
     room.npcs.forEach(id => {
-        if (GUARD_NPC_IDS.includes(id) && !result.includes(id)) {
+        seen[id]=(seen[id] || 0)+1;
+        if (GUARD_NPC_IDS.includes(id) && seen[id]>(included[id] || 0)) {
             result.push(id);
         }
     });
@@ -104,6 +115,8 @@ function buildBattleEnemy(npcId, index) {
     if (!npc) return null;
     return {
         index, npcId, name: npc.name,
+        entityId: typeof newCombatId === 'function' ? newCombatId('unit') : `unit_${Date.now()}_${index}_${_corpseSeqCounter}`,
+        joinOrder: index, expeditionRole: npc.expeditionRole, training: npc.training,
         currentHp: npc.hp, maxHp: npc.maxHp,
         sp: npc.sp || 0, maxSp: npc.maxSp || 0,
         atk: npc.atk, def: npc.def, agi: getCharacterAgility(npc),
@@ -277,7 +290,7 @@ function maybeEnemyTargetAlly(enemy) {
     const target = allies[Math.floor(Math.random() * allies.length)];
     print(`<span style="color:#ffaaaa;">→ ${enemyNameHtml(enemy.name)} 的回合</span>`);
     print(`${enemyNameHtml(enemy.name)} 向 ${allyNameHtml(target.name)} 发起攻击！`);
-    const damage = calculateDamage(enemy.atk, target.def, null, null);
+    const damage = calculateDamage(combatUnitStat(enemy, 'atk'), target.def, null, null);
     target.currentHp = Math.max(0, target.currentHp - damage);
     print(`${enemyNameHtml(enemy.name)} 对 ${allyNameHtml(target.name)} 造成 ${damage} 点伤害！`);
     if (target.currentHp <= 0) {
@@ -329,7 +342,9 @@ function _spawnCorpseForUnit(unit, silent = false, log, roomId) {
     const corpseId = `corpse_${npcId}_${Date.now()}_${unit._corpseSeq}`;
 
     // 沿用现有专用尸体生成函数（命中后统一覆盖ID并注册到 ITEM_TEMPLATES）
-    if (npcId === 'female_serf') {
+    if (CHARACTER_TEMPLATES[npcId]?.expeditionAnatomy && typeof generateExpeditionCorpse === 'function') {
+        corpse = generateExpeditionCorpse(npcId);
+    } else if (npcId === 'female_serf') {
         corpse = (typeof generateFemaleSerfCorpse === 'function') ? generateFemaleSerfCorpse() : null;
     } else if (npcId === 'slum_girl') {
         corpse = (typeof generateMandorolaCorpse === 'function') ? generateMandorolaCorpse() : null;
@@ -405,7 +420,8 @@ function _settleUnitDeath(unit, silent = false, log, roomId) {
     }
     // 立即从周围可见中移除该NPC，只保留尸体
     _removeUnitFromRoomNpcs(unit, roomId);
-    _spawnCorpseForUnit(unit, silent, log, roomId);
+    if (!unit.training) _spawnCorpseForUnit(unit, silent, log, roomId);
+    if (typeof handleExplorationDeath === 'function') handleExplorationDeath(unit, roomId || battleState.roomId);
 }
 
 // 单位名字着色（盟友绿色/敌人红色）
@@ -467,11 +483,20 @@ function handlePlayerSkillEnemyDeath(enemy) {
 // ============================================================
 
 function renderSkillButtons() {
-    const currentSp = gameState.player.sp || 0; const maxSp = gameState.player.maxSp || 0;
+    if (typeof playerSkillFailure === 'function') {
+        let result='<h3>已学技能</h3>';
+        (gameState.player.skills || []).forEach(id=> {
+            const s=skills[id]; if(!s || s.npcOnly) return;
+            const reason=playerSkillFailure(id);
+            result+=`<button class="skill-button" onclick="useSkill('${id}')" ${reason?'disabled':''}>${s.name}</button>`;
+        });
+        return result;
+    }
+    const currentSp = gameState.player.sp || 0;
     let html = '<h3>技能</h3>';
     if (gameState.player.skills && gameState.player.skills.length > 0) {
         html += '<div class="skill-buttons">';
-        gameState.player.skills.forEach(sId => { const s = skills[sId]; if (s) { if (s.requireKnightSet && !hasKnightSetBonus()) return; if (s.npcOnly) return; const disabled = currentSp < s.cost ? 'disabled' : ''; html += `<button class="skill-button ${disabled}" onclick="useSkill('${sId}')" ${disabled}><span class="skill-name">${s.name}</span><span class="skill-cost">SP: ${s.cost} (${currentSp}/${maxSp})</span><span class="skill-desc">${s.description}</span></button>`; } });
+        gameState.player.skills.forEach(sId => { const s = skills[sId]; if (s) { if (s.requireKnightSet && !hasKnightSetBonus()) return; if (s.npcOnly) return; const disabled = currentSp < s.cost ? 'disabled' : ''; html += `<button class="skill-button" onclick="useSkill('${sId}')" ${disabled}>${s.name}</button>`; } });
         html += '</div>';
     } else { html += '<p>暂无技能</p>'; }
     return html;
@@ -480,6 +505,10 @@ function renderSkillButtons() {
 // 战斗详情：技能 + 敌人（红）（盟友改由左侧「周围可见」显示）
 function renderBattleDetail() {
     let html = renderSkillButtons();
+    if (typeof resolvePlayerTarget === 'function') {
+        const target=resolvePlayerTarget();
+        html+=`<p>${battleState.selectedEnemyEntityId?'锁定':'自动目标'}：${target?.name || '无'} <button class="battle-control" onclick="selectBattleTarget()">取消锁定</button></p>`;
+    }
 
     const doll = (battleState.allies || []).find(ally => ally._magicDoll && ally.currentHp > 0 && !ally._dead);
     if (doll) {
@@ -493,7 +522,7 @@ function renderBattleDetail() {
         html += '<p style="color:#666;">无</p>';
     } else {
         enemies.forEach(e => {
-            html += `<div>${enemyNameHtml(e.name)} <span style="color:#888;">（${getHpStatusText(e)}）</span></div>`;
+            html += `<div class="battle-target ${battleState.selectedEnemyEntityId===e.entityId?'battle-target--selected':''}">${enemyNameHtml(e.name)} ${typeof selectBattleTarget === 'function' ? `#${(e.joinOrder ?? e.index)+1} · HP ${e.currentHp}/${e.maxHp} <button class="battle-control" onclick="selectBattleTarget('${e.entityId}')">${battleState.selectedEnemyEntityId===e.entityId?'✓ 当前目标':'锁定'}</button>` : ''} <span style="color:#888;">（${getHpStatusText(e)}）</span></div>`;
         });
     }
 
@@ -502,8 +531,10 @@ function renderBattleDetail() {
 
 // 实时技能：战斗中任意时刻点击、立即消耗SP并结算，不打断当前行动序列
 function useSkill(skillId) {
+    if (typeof useLearnedCombatSkill === 'function' && PLAYER_SKILL_DEFINITIONS[skillId]) return useLearnedCombatSkill(skillId);
     if (!battleState.inBattle) { print(`<span style="color: #ffaaaa;">战斗外无法使用技能！</span>`); return; }
     const skill = skills[skillId]; if (!skill) { print(`<span style="color: #ffaaaa;">技能不存在！</span>`); return; }
+    if (skill.npcOnly || !gameState.player.skills?.includes(skillId)) { print('尚未学习此技能。'); return false; }
     const currentSp = gameState.player.sp || 0; if (currentSp < skill.cost) { print(`<span style="color: #ffaaaa;">技力不足！</span>`); return; }
     gameState.player.sp = Math.floor(currentSp - skill.cost);
     skill.effect();
@@ -542,6 +573,8 @@ function _afterSkillResolution() {
 
 function startMultiBattle(npcIds) {
     if (!npcIds || npcIds.length === 0) return;
+    if (battleState.inBattle) return;
+    if (typeof cancelBattleTimers === 'function') cancelBattleTimers();
     if (typeof mainContent !== 'undefined' && mainContent) { UI.setOutputHtml(mainContent); }
     print("");
     print(`═══════ ⚔️ 战斗开始 ═══════`);
@@ -579,6 +612,9 @@ function startMultiBattle(npcIds) {
         originalPlayerStats: { atk: gameState.player.atk, def: gameState.player.def, agi: gameState.player.agi },
         fleeAttemptedThisRound: false
     };
+    battleState.paused = false;
+    battleState.nextStep = 'round';
+    battleState.roundReady = false;
     if (typeof buildMagicDollBattleAlly === 'function') {
         const magicDoll = buildMagicDollBattleAlly(battleState.allies.length);
         if (magicDoll) {
@@ -587,10 +623,14 @@ function startMultiBattle(npcIds) {
         }
     }
     document.body.classList.add('battle-mode');
+    UI.setOverlay(true);
 
     initCastleReinforcement(gameState.player.location);
+    if (typeof ensureCombatIdentity === 'function') {
+        ensureCombatIdentity();
+    }
     if (UI.elements.detailPanel) { UI.setDetail(renderBattleDetail()); }
-    setTimeout(() => startNewRound(), 800);
+    scheduleCombatStep('round', 800);
 }
 
 function startBattle(npcId) { startMultiBattle([npcId]); }
@@ -622,6 +662,7 @@ function turnOrderToName(key) {
 
 function startNewRound() {
     if (!battleState.inBattle) return;
+    battleState.roundReady=true;
     if (battleState.enemies.filter(e => e.currentHp > 0 && !e._dead).length === 0) { battleEnd(true); return; }
     if (gameState.player.hp <= 0) { battleEnd(false); return; }
 
@@ -630,6 +671,8 @@ function startNewRound() {
 
     // 每回合重置逃跑尝试次数
     battleState.fleeAttemptedThisRound = false;
+    battleState.attackUsed = false;
+    battleState.auxiliaryUsed = false;
 
     battleState.enemies.forEach(enemy => {
         if (enemy.skillCooldown > 0) enemy.skillCooldown--;
@@ -658,17 +701,23 @@ function startNewRound() {
     print(`<span style="color: #888;">行动顺序: ${battleState.turnOrder.map(turnOrderToName).join(' → ')}</span>`);
     print("");
     if (UI.elements.detailPanel) { UI.setDetail(renderBattleDetail()); }
-    setTimeout(() => executeNextTurn(), 600);
+    scheduleCombatStep('turn', 600);
 }
 
 function executeNextTurn() {
     if (!battleState.inBattle) return;
+    if (battleState.effectTickEntityId && typeof tickEnemyEffects === 'function') {
+        const previous=battleState.enemies.find(e=>e.entityId===battleState.effectTickEntityId);
+        if (previous) tickEnemyEffects(previous,battleState.effectTickVersions);
+        battleState.effectTickEntityId=null;
+        battleState.effectTickVersions=null;
+    }
     if (battleState.enemies.filter(e => e.currentHp > 0 && !e._dead).length === 0) { battleEnd(true); return; }
     if (gameState.player.hp <= 0) { battleEnd(false); return; }
 
     if (battleState.currentTurnIndex >= battleState.turnOrder.length) {
         battleState.round++;
-        setTimeout(() => startNewRound(), 800);
+        scheduleCombatStep('round', 800);
         return;
     }
 
@@ -683,10 +732,12 @@ function executeNextTurn() {
 
 function executePlayerTurn() {
     if (!battleState.inBattle || gameState.player.hp <= 0) { if (gameState.player.hp <= 0) battleEnd(false); return; }
+    if (battleState.attackUsed) { if (typeof queueBattleStep === 'function') queueBattleStep('turn',300); else setTimeout(()=>executeNextTurn(),300); return; }
+    battleState.attackUsed=true;
     const aliveEnemies = battleState.enemies.filter(e => e.currentHp > 0 && !e._dead);
     if (aliveEnemies.length === 0) { battleEnd(true); return; }
 
-    const targetEnemy = aliveEnemies[0];
+    const targetEnemy = typeof resolvePlayerTarget === 'function' ? resolvePlayerTarget() : aliveEnemies[0];
     const playerAtk = getCharacterAttack(gameState.player);
     print(`<span style="color: #aaffaa;">→ 你的回合</span>`);
     print(`你选择攻击 ${enemyNameHtml(targetEnemy.name)}！`);
@@ -694,7 +745,7 @@ function executePlayerTurn() {
     if (tryDodge(targetEnemy.agi)) {
         print(`你的攻击被 ${enemyNameHtml(targetEnemy.name)} 闪避了！`);
     } else {
-        const damage = calculateDamage(playerAtk, targetEnemy.def, gameState.player.equipment, null);
+        const damage = calculateDamage(playerAtk, typeof effectiveEnemyStat === 'function' ? effectiveEnemyStat(targetEnemy,'def') : targetEnemy.def, gameState.player.equipment, null);
         print(`你对 ${enemyNameHtml(targetEnemy.name)} 造成 <span style="color: #ff6666;">${damage}</span> 点伤害！`);
         _applyDamageToUnit(targetEnemy, damage, false, null, battleState.roomId || gameState.player.location);
     }
@@ -703,7 +754,7 @@ function executePlayerTurn() {
     print(`<span style="color: #aaffaa;">你的 HP: ${gameState.player.hp}/${gameState.player.maxHp} SP: ${gameState.player.sp||0}/${gameState.player.maxSp||0}</span>`);
     print("");
     if (UI.elements.detailPanel) { UI.setDetail(renderBattleDetail()); }
-    setTimeout(() => executeNextTurn(), 1200);
+    scheduleCombatStep('turn', 1200);
 }
 
 function executeAllyTurn(allyIndex) {
@@ -723,14 +774,14 @@ function executeAllyTurn(allyIndex) {
     if (tryDodge(target.agi)) {
         print(`${allyNameHtml(ally.name)} 的攻击被 ${enemyNameHtml(target.name)} 闪避了！`);
     } else {
-        const damage = calculateDamage(ally.atk, target.def, null, null);
+        const damage = calculateDamage(ally.atk, combatUnitStat(target, 'def'), null, null);
         print(`${allyNameHtml(ally.name)} 对 ${enemyNameHtml(target.name)} 造成 ${damage} 点伤害！`);
         _applyDamageToUnit(target, damage, false, null, battleState.roomId || gameState.player.location);
     }
 
     if (!battleState.inBattle) return;
     if (UI.elements.detailPanel) { UI.setDetail(renderBattleDetail()); }
-    setTimeout(() => executeNextTurn(), 1200);
+    scheduleCombatStep('turn', 1200);
 }
 
 function executeEnemyTurn(enemyIndex) {
@@ -738,15 +789,19 @@ function executeEnemyTurn(enemyIndex) {
     const enemy = battleState.enemies[enemyIndex];
     if (!enemy || enemy.currentHp <= 0 || enemy._dead) { executeNextTurn(); return; }
     if (gameState.player.hp <= 0) { battleEnd(false); return; }
+    battleState.effectTickEntityId=enemy.entityId;
+    battleState.effectTickVersions=Object.fromEntries(Object.entries(enemy.statusEffects || {}).map(([key,effect])=>[key,effect.generation]));
+    if(enemy.supportBuff) battleState.effectTickVersions.support=enemy.supportBuff.generation;
+    if (typeof tryExplorationSupport === 'function' && tryExplorationSupport(enemy)) { queueBattleStep('turn',1200); return; }
 
     if (tryUseAcademyEnemySkill(enemy)) {
         if (gameState.player.hp <= 0) {
             print(`<span style="color: #ff6666;">你倒下了...</span>`);
-            setTimeout(() => battleEnd(false), 1000);
+            scheduleCombatStep('defeat', 1000);
             return;
         }
         if (UI.elements.detailPanel) UI.setDetail(renderBattleDetail());
-        setTimeout(() => executeNextTurn(), 1200);
+        scheduleCombatStep('turn', 1200);
         return;
     }
 
@@ -757,7 +812,7 @@ function executeEnemyTurn(enemyIndex) {
             print(`<span style="color: #ffaaaa;">→ ${enemyNameHtml(enemy.name)} 的回合</span>`);
             if (throatSkill) throatSkill.effect(enemy);
             print(`<span style="color: #ff6666;">你倒下了...</span>`);
-            setTimeout(() => battleEnd(false), 1000);
+            scheduleCombatStep('defeat', 1000);
             return;
         }
     }
@@ -770,7 +825,7 @@ function executeEnemyTurn(enemyIndex) {
                 battleState.lianaVowUsed = true;
                 vowSkill.effect(enemy);
                 updateEnemyStatusDisplay(enemy);
-                setTimeout(() => executeNextTurn(), 1200);
+                scheduleCombatStep('turn', 1200);
                 return;
             }
         }
@@ -781,8 +836,8 @@ function executeEnemyTurn(enemyIndex) {
                 sacSkill.effect(enemy);
                 battleState.lianaSacrificeCooldown = sacSkill.cooldown || 3;
                 updateEnemyStatusDisplay(enemy);
-                if (gameState.player.hp <= 0) { setTimeout(() => battleEnd(false), 1000); return; }
-                setTimeout(() => executeNextTurn(), 1200);
+                if (gameState.player.hp <= 0) { scheduleCombatStep('defeat', 1000); return; }
+                scheduleCombatStep('turn', 1200);
                 return;
             }
         }
@@ -797,7 +852,7 @@ function executeEnemyTurn(enemyIndex) {
                 blessingSkill.effect(enemy);
                 battleState.androsBlessingUsed = true;
                 updateEnemyStatusDisplay(enemy);
-                setTimeout(() => executeNextTurn(), 1200);
+                scheduleCombatStep('turn', 1200);
                 return;
             }
         }
@@ -808,7 +863,7 @@ function executeEnemyTurn(enemyIndex) {
                 enemy.sp -= healSkill.cost;
                 healSkill.effect(enemy);
                 updateEnemyStatusDisplay(enemy);
-                setTimeout(() => executeNextTurn(), 1200);
+                scheduleCombatStep('turn', 1200);
                 return;
             }
         }
@@ -817,7 +872,7 @@ function executeEnemyTurn(enemyIndex) {
     // 起义群众优先吸引部分攻击
     if (maybeEnemyTargetAlly(enemy)) {
         print(`<span style="color: #aaffaa;">你的 HP: ${gameState.player.hp}/${gameState.player.maxHp} SP: ${gameState.player.sp||0}/${gameState.player.maxSp||0}</span>`);
-        setTimeout(() => executeNextTurn(), 1200);
+        scheduleCombatStep('turn', 1200);
         return;
     }
 
@@ -829,19 +884,19 @@ function executeEnemyTurn(enemyIndex) {
     if (tryDodge(playerAgi)) {
         print(`${enemyNameHtml(enemy.name)} 的攻击被你闪避了！`);
     } else {
-        const damage = calculateDamage(enemy.atk, playerDef, null, gameState.player.equipment);
+        const damage = calculateDamage(combatUnitStat(enemy, 'atk'), playerDef, null, gameState.player.equipment);
         gameState.player.hp = Math.max(0, gameState.player.hp - damage);
         print(`${enemyNameHtml(enemy.name)} 对你造成 <span style="color: #ff6666;">${damage}</span> 点伤害！`);
     }
 
     if (gameState.player.hp <= 0) {
         print(`<span style="color: #ff6666;">你倒下了...</span>`);
-        setTimeout(() => battleEnd(false), 1000);
+        scheduleCombatStep('defeat', 1000);
         return;
     }
     print(`<span style="color: #aaffaa;">你的 HP: ${gameState.player.hp}/${gameState.player.maxHp} SP: ${gameState.player.sp||0}/${gameState.player.maxSp||0}</span>`);
     if (UI.elements.detailPanel) { UI.setDetail(renderBattleDetail()); }
-    setTimeout(() => executeNextTurn(), 1200);
+    scheduleCombatStep('turn', 1200);
 }
 
 function updateEnemyStatusDisplay(enemy) {
@@ -852,15 +907,25 @@ function updateEnemyStatusDisplay(enemy) {
 //  战斗结束
 // ============================================================
 
-function battleEnd(playerWon) {
-    battleState.inBattle = false;
-    battleState.reinforcement = null;
+function restorePlayerStatsAfterBattle() {
     if (battleState.originalPlayerStats) {
-        gameState.player.atk = battleState.originalPlayerStats.atk;
-        gameState.player.def = battleState.originalPlayerStats.def;
-        gameState.player.agi = battleState.originalPlayerStats.agi;
+        // 战斗期间也可能食用料理或升级，不能用开战快照覆盖这些永久成长。
+        const stats = getPlayerBalancedStats(gameState.player);
+        gameState.player.atk = stats.atk;
+        gameState.player.def = stats.def;
+        gameState.player.agi = stats.agi;
         battleState.originalPlayerStats = null;
     }
+}
+
+function battleEnd(playerWon) {
+    if (!battleState.inBattle) return;
+    if (typeof cancelBattleTimers === 'function') cancelBattleTimers();
+    if (typeof finishTrainingBattle === 'function' && finishTrainingBattle(playerWon)) return;
+    battleState.inBattle = false;
+    battleState.selectedEnemyEntityId = null;
+    battleState.reinforcement = null;
+    restorePlayerStatsAfterBattle();
     document.body.classList.remove('battle-mode');
 
     print(`<span style="color: #ffdd44;">═══════════════════════════</span>`);
@@ -906,19 +971,16 @@ function battleEnd(playerWon) {
             checkLevelUp();
         }
 
-        if (room?.npcs) {
-            defeatedEnemies.forEach(npcId => {
-                const idx = room.npcs.indexOf(npcId);
-                if (idx > -1) room.npcs.splice(idx, 1);
-            });
-        }
-        // 清理被击败的卫兵（含从其他房间赶来增援的卫兵）
-        _pruneDefeatedGuardNpcs(defeatedEnemies);
+        // 死亡已由 _settleUnitDeath 移除具体参战实例，不能再按模板清空其他房间的卫兵。
         updateSceneInfo();
     } else {
         print(`<span style="color: #ff6666;">【失败...】你被击败了。</span>`);
         print(`<span style="color: #aaa;">（游戏将重新开始...）</span>`);
-        setTimeout(() => location.reload(), 2000);
+        const defeatedState = gameState;
+        const defeatEpoch = typeof battleTimerEpoch === 'number' ? battleTimerEpoch : null;
+        setTimeout(() => {
+            if (gameState===defeatedState && (defeatEpoch===null || defeatEpoch===battleTimerEpoch)) location.reload();
+        }, 2000);
     }
 
     UI.setOverlay(false);
@@ -935,14 +997,12 @@ function battleEnd(playerWon) {
 
 // 清理战斗状态（玩家逃跑时使用：不结算经验/掉落）
 function _cleanupBattleState() {
+    window._onBattleEnd = null;
+    if (typeof cancelBattleTimers === 'function') cancelBattleTimers();
     battleState.inBattle = false;
+    battleState.selectedEnemyEntityId = null;
     battleState.reinforcement = null;
-    if (battleState.originalPlayerStats) {
-        gameState.player.atk = battleState.originalPlayerStats.atk;
-        gameState.player.def = battleState.originalPlayerStats.def;
-        gameState.player.agi = battleState.originalPlayerStats.agi;
-        battleState.originalPlayerStats = null;
-    }
+    restorePlayerStatsAfterBattle();
     document.body.classList.remove('battle-mode');
 }
 
@@ -995,8 +1055,10 @@ function tryFlee(direction) {
     // 将当前敌我状态保存为仇恨记录（关联原房间），用于玩家下次返回恢复战斗
     if (!gameState.backgroundBattles) gameState.backgroundBattles = {};
     const bg = {
+        combatSnapshot: typeof snapshotCombat === 'function' ? snapshotCombat() : null,
+        playerSp: gameState.player.sp,
         roomId: gameState.player.location,
-        enemies: JSON.parse(JSON.stringify(aliveEnemies)),
+        enemies: JSON.parse(JSON.stringify(battleState.enemies)),
         allies: JSON.parse(JSON.stringify(backgroundAllies)),
         allyCount: backgroundAllies.length,
         round: battleState.round,
@@ -1084,7 +1146,7 @@ function _stepBackgroundBattle(bg) {
         if (ally.currentHp <= 0 || ally._dead) return;
         const target = enemies[Math.floor(Math.random() * enemies.length)];
         if (!target || target.currentHp <= 0) return;
-        const damage = calculateDamage(ally.atk, target.def, null, null);
+        const damage = calculateDamage(ally.atk, combatUnitStat(target, 'def'), null, null);
         _applyDamageToUnit(target, damage, true, bg.log, bg.roomId);
         bg.log.push(`${ally.name} 对 ${target.name} 造成 ${damage} 点伤害。`);
     });
@@ -1095,10 +1157,11 @@ function _stepBackgroundBattle(bg) {
         if (Math.random() >= 0.4) return;
         const target = allies[Math.floor(Math.random() * allies.length)];
         if (!target || target.currentHp <= 0) return;
-        const damage = calculateDamage(enemy.atk, target.def, null, null);
+        const damage = calculateDamage(combatUnitStat(enemy, 'atk'), target.def, null, null);
         _applyDamageToUnit(target, damage, true, bg.log, bg.roomId);
         bg.log.push(`${enemy.name} 对 ${target.name} 造成 ${damage} 点伤害。`);
     });
+    if (typeof tickEnemyEffects === 'function') enemies.forEach(enemy=>tickEnemyEffects(enemy));
 
     // 处理死亡尸体（静默）
     [...enemies, ...allies].forEach(unit => {
@@ -1117,13 +1180,6 @@ function _settleBackgroundBattle(bg) {
 
     if (enemiesAlive.length === 0) {
         bg.status = 'allies_victory';
-        const room = gameState.world[bg.roomId];
-        if (room && room.npcs) {
-            bg.enemies.forEach(e => {
-                const idx = room.npcs.indexOf(e.npcId);
-                if (idx > -1) room.npcs.splice(idx, 1);
-            });
-        }
         const names = bg.allies.map(a => a.name).join('、');
         bg.log.push(`【盟友胜利】${names} 击败了所有敌人。`);
     } else if (alliesAlive.length === 0) {
@@ -1190,6 +1246,13 @@ function _printBackgroundSummary(bg) {
 
 // 从后台记录恢复为主界面实战
 function _resumeBattleFromBackground(bg) {
+    if (bg.combatSnapshot && typeof restoreCombatSnapshot === 'function') {
+        const saved=bg.combatSnapshot;
+        saved.enemies=bg.enemies;
+        saved.allies=(saved.allies || []).map(old=>old._magicDoll ? old : (bg.allies.find(a=>a.index===old.index) || {...old,_dead:true,currentHp:0}));
+        gameState.player.sp=Math.min(gameState.player.sp,bg.playerSp ?? gameState.player.sp);
+        restoreCombatSnapshot(saved); return;
+    }
     if (typeof mainContent !== 'undefined' && mainContent) { UI.setOutputHtml(mainContent); }
     print("");
     print(`═══════ ⚔️ 战斗再开 ═══════`);
@@ -1223,13 +1286,13 @@ function _resumeBattleFromBackground(bg) {
 
     initCastleReinforcement(battleState.roomId);
     if (UI.elements.detailPanel) { UI.setDetail(renderBattleDetail()); }
-    setTimeout(() => startNewRound(), 800);
+    scheduleCombatStep('round', 800);
 }
 
 function dealAcademyMagicDamage(enemy, multiplier, defenseIgnore, skillName) {
     const playerDef = getCharacterDefense(gameState.player);
     const effectiveDef = Math.floor(playerDef * (1 - defenseIgnore));
-    const raw = Math.floor(enemy.atk * multiplier * (0.9 + Math.random() * 0.2));
+    const raw = Math.floor(combatUnitStat(enemy, 'atk') * multiplier * (0.9 + Math.random() * 0.2));
     const damage = Math.max(1, raw - effectiveDef);
     gameState.player.hp = Math.max(0, gameState.player.hp - damage);
     print(`<span style="color:#bb77ff;">${enemyNameHtml(enemy.name)}施放「${skillName}」，对你造成 ${damage} 点魔法伤害！</span>`);

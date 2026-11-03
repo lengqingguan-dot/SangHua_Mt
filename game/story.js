@@ -82,24 +82,17 @@ const STORIES = {
         onStart() { startBattle('liana'); }
     },
 
-    // 卡伦镇道路入口（进入「马路」的无文本传送事件）
+    // 卡伦镇道路入口（即时传送，补齐统一字幕）
     karen_town_enter: {
         id: 'karen_town_enter',
         type: 'event',
         trigger: { type: 'use_item', item: 'karen_town' },
         onStart() {
-            UI.setOverlay(true);
-            clearDetailPanel();
-            currentPanel = null;
-            gameState.player.location = 'road';
             if (!gameState.gameFlags) gameState.gameFlags = {};
             gameState.gameFlags.roadEntered = true;
+            relocateTo('road', { skipCheck: true, travelText: '你沿着山路走下去，踏上通往卡伦镇的马路。' });
         },
         onComplete() {
-            UI.setOverlay(false);
-            look();
-            updateMinimap();
-            updateSceneInfo();
             StoryEngine.check();
         }
     },

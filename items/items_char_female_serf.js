@@ -20,8 +20,8 @@ function generateFemaleSerfCorpse() {
         { id: 'female_serf_leg', name: '腿', count: 2 },
         { id: 'female_serf_arm', name: '手臂', count: 2 },
         { id: 'female_serf_hand', name: '手', count: 2 },
-        { id: 'female_serf_foot', name: `脚（${footSize}）`, count: 2 },
-        { id: 'female_serf_breast', name: `乳房（${cup}）`, count: 2 }
+        { id: 'female_serf_foot', name: '脚', count: 2 },
+        { id: 'female_serf_breast', name: '乳房', count: 2 }
     ];
 
     const generatedLimbs = {

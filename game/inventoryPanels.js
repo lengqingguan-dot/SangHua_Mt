@@ -105,6 +105,7 @@ function generateInventoryCategoryMenu(active = 'all') {
     return `<div class="panel-tabs">` +
            tab('all', '全部', 'showInventoryAll()') +
            tab('consumable', '消耗品', "showInventoryCategory('consumable')") +
+           tab('skill_book', '技能书', "showInventoryCategory('skill_book')") +
            tab('important', '重要道具', "showInventoryCategory('important')") +
            tab('limb', '肢体', "showInventoryCategory('limb')") +
            tab('misc', '杂物', "showInventoryCategory('misc')") + `</div>`;
@@ -112,12 +113,13 @@ function generateInventoryCategoryMenu(active = 'all') {
 
 function showInventoryCategory(category) {
     if (category === 'limb') { showInventoryLimbCategory(); return; }
-    const categoryName = category === 'consumable' ? '消耗品' : category === 'important' ? '重要道具' : category === 'limb' ? '肢体' : '杂物';
+    const categoryName = category === 'skill_book' ? '技能书' : category === 'consumable' ? '消耗品' : category === 'important' ? '重要道具' : category === 'limb' ? '肢体' : '杂物';
     let html = makeTitle(`行囊物品 - ${categoryName}`);
     html += generateInventoryCategoryMenu(category);
     const inv = gameState.player.inventory;
     let filtered = [];
     switch (category) {
+        case 'skill_book': filtered = inv.filter(i => i.type === 'skill_book'); break;
         case 'consumable': filtered = inv.filter(i => i.type === 'consumable'); break;
         case 'important': filtered = inv.filter(i => i.type === 'readable' || i.id.includes('key') || i.id.includes('note')); break;
         case 'limb': filtered = inv.filter(i => i.id.includes('corpse') || i.story || i.ingredientType || i.dismemberable || i.milkItem); break;
@@ -184,8 +186,18 @@ function examineItemFromPanel(itemId, encodedStackKey = '') {
     } else if (item.type === 'weapon' || item.type === 'armor' || item.type === 'accessory') html += `<span class="detail-action detail-action--good" onclick="equipItemFromDetail('${item.id}')">⚔️ 装备</span>`;
     else if (item.type === 'consumable') html += `<span class="detail-action detail-action--good" onclick="useItemFromDetail('${item.id}')">🧪 使用</span>`;
     else if (item.type === 'readable') html += `<span class="detail-action detail-action--good" onclick="readItemFromDetail('${item.id}')">📖 阅读</span>`;
+    else if (item.type === 'skill_book') {
+        if (item.skillId && PLAYER_SKILL_DEFINITIONS[item.skillId]) {
+            const learned = skillLevel(item.skillId) > 0;
+            const levelRequired = PLAYER_SKILL_DEFINITIONS[item.skillId].learnLevel;
+            const disabled = battleState.inBattle || (!learned && gameState.player.level < levelRequired);
+            html += `<button onclick="useSkillBookFromInventory('${item.id}',${learned})" ${disabled ? 'disabled' : ''}>${learned ? '已学会 · 转为同阶研习册' : '📖 学习技能'}</button>`;
+            if (!learned && gameState.player.level < levelRequired) html += `<span>需要角色等级 ${levelRequired}</span>`;
+        } else html += '<span>升级材料：在下方「技能」栏选择已学技能，进入详情升级。</span>';
+        html += `<button onclick="sellSkillBookFromDetail('${item.id}')" ${battleState.inBattle ? 'disabled' : ''}>确认出售书籍</button>`;
+    }
     else if (item.story) html += `<span class="detail-action" onclick="useLimb('${item.id}')">🔍 互动</span>`;
-    else if (item.id === 'removed_ladder' || (item.id.includes('removed_ladder') && item.id.includes('_dropped_'))) html += `<span class="detail-action detail-action--good" onclick="useRemovedLadder()">🪜 使用梯子</span>`;
+    else if (itemTemplateId(item) === 'removed_ladder') html += `<span class="detail-action detail-action--good" onclick="useRemovedLadder('${item.id}')">🪜 使用梯子</span>`;
     html += `<span class="detail-action detail-action--danger" onclick="dropItemFromInventory('${item.id}')">🗑️ 丢弃</span></div>`;
     html += makePanelFooter('showInventoryPanel()', '返回物品栏', '←');
     UI.setDetail(html); currentPanel = 'item_detail';
@@ -195,9 +207,50 @@ function showTradePanel() { clearDetailPanel(); currentPanel = null; const gold 
 
 function sellItemFromTrade(itemId) { const item = findItemById(itemId); if (!item) { print("物品不存在。"); return; } const price = getItemSellPrice(item); removeItemFromInventory(itemId); gameState.player.gold = (gameState.player.gold || 0) + price; print(`<span style="color:#ffaa00;">你出售了「${item.name}」，获得了 ${price} 金币。</span>`); print(`<span style="color:#ffdd44;">当前金币：${gameState.player.gold}</span>`); showTradePanel(); }
 
-function equipItemFromDetail(itemId) { const index = gameState.player.inventory.findIndex(i => i.id === itemId); if (index === -1) { print("你没有这件物品。"); return; } const item = gameState.player.inventory[index]; if (item.type !== 'weapon' && item.type !== 'armor' && item.type !== 'accessory') { print(`「${item.name}」无法装备。`); return; } const slot = item.slot || item.type; const current = gameState.player.equipment[slot]; if (current) { if (current.maxHpPercent) gameState.player.maxHp = Math.floor(gameState.player.maxHp / (1 + current.maxHpPercent)); gameState.player.inventory.push(current); print(`你卸下了「${current.name}」。`); } gameState.player.inventory.splice(index, 1); gameState.player.equipment[slot] = item; if (item.maxHpPercent && item.maxHpPercent < 0) { gameState.player.maxHp = Math.floor(gameState.player.maxHp * (1 + item.maxHpPercent)); if (gameState.player.hp > gameState.player.maxHp) gameState.player.hp = gameState.player.maxHp; print(`<span style="color:#ff6666;">诅咒生效！最大生命值降低至${gameState.player.maxHp}。</span>`); } else { const equipDisplayName = item.rarity ? getEquipmentDisplayName(item) : item.name; print(`你装备了「${equipDisplayName}」。`); } checkKnightSetChange(); clearDetailPanel(); showInventoryPanel(); StoryEngine.check(); }
+function equipItemFromDetail(itemId) {
+    const player = gameState.player;
+    const index = player.inventory.findIndex(i => i.id === itemId);
+    if (index === -1) { print("你没有这件物品。"); return; }
+    const item = player.inventory[index];
+    if (!['weapon', 'armor', 'accessory'].includes(item.type)) { print(`「${item.name}」无法装备。`); return; }
+    const slot = item.slot || item.type;
+    const current = player.equipment[slot];
+    if (current) {
+        player.inventory.push(current);
+        print(`你卸下了「${current.name}」。`);
+    }
+    player.inventory.splice(index, 1);
+    player.equipment[slot] = item;
+    refreshPlayerMaxHp(player);
+    if (item.maxHpPercent && item.maxHpPercent < 0) {
+        print(`<span style="color:#ff6666;">诅咒生效！最大生命值降低至${player.maxHp}。</span>`);
+    } else {
+        const equipDisplayName = item.rarity ? getEquipmentDisplayName(item) : item.name;
+        print(`你装备了「${equipDisplayName}」。`);
+    }
+    checkKnightSetChange();
+    clearDetailPanel();
+    showInventoryPanel();
+    StoryEngine.check();
+}
 
-function useItemFromDetail(itemId) { if (itemId === 'sanghuashan_mine') { return; } const item = findItemById(itemId); if (!item) return; if (item.type === 'consumable' && item.effect === 'heal') { gameState.player.hp = Math.min(gameState.player.maxHp, gameState.player.hp + (item.value || 10)); print(`你使用了「${item.name}」，恢复了${item.value||10}点生命。`); removeItemFromInventory(itemId); } else if (['maxHp','atk','def','agi','all'].includes(item.effect)) { const p = gameState.player; switch (item.effect) { case 'maxHp': p.maxHp += item.value; p.hp += item.value; break; case 'atk': p.atk += item.value; break; case 'def': p.def += item.value; break; case 'agi': p.agi += item.value; break; case 'all': p.maxHp += item.value; p.hp += item.value; p.atk += item.value; p.def += item.value; p.agi += item.value; break; } print(`你食用了「${item.name}」，${item.effect==='all'?'所有属性':''}永久提升${item.value}点！`); removeItemFromInventory(itemId); } else { print(`你使用了「${item.name}」，但没什么效果。`); } clearDetailPanel(); showInventoryPanel(); }
+function useItemFromDetail(itemId) {
+    if (itemId === 'sanghuashan_mine') return;
+    const item = findItemById(itemId);
+    if (!item) return;
+    if (item.type === 'consumable' && item.effect === 'heal') {
+        gameState.player.hp = Math.min(gameState.player.maxHp, gameState.player.hp + (item.value || 10));
+        print(`你使用了「${item.name}」，恢复了${item.value || 10}点生命。`);
+        removeItemFromInventory(itemId);
+    } else if (addPlayerPermanentBonus(gameState.player, item.effect, item.value)) {
+        print(`你食用了「${item.name}」，${item.effect === 'all' ? '所有属性' : ''}永久提升${item.value}点！`);
+        removeItemFromInventory(itemId);
+    } else {
+        print(`你使用了「${item.name}」，但没什么效果。`);
+    }
+    clearDetailPanel();
+    showInventoryPanel();
+}
 
 function readItemFromDetail(itemId) { const item = findItemById(itemId); if (!item) return; clearDetailPanel(); currentPanel = null; if (item.content && Array.isArray(item.content)) { print(`你打开「${item.name}」……`); print("<br>"); if (typeof StoryEngine !== 'undefined') { StoryEngine.playLines({ lines: item.content, color: '#ffdd44', useNextBtn: true, addLineBreaks: false, onComplete: () => { print("────────────────"); if (!gameState.gameFlags) gameState.gameFlags = {}; gameState.gameFlags[`read_${itemId}`] = true; StoryEngine.markConditionProgress('read_item', itemId); } }); } } }
 
@@ -233,7 +286,18 @@ function examineEquippedItem(slotKey) {
     UI.setDetail(html); currentPanel = 'equipped_detail';
 }
 
-function unequipItem(slotKey) { const item = gameState.player.equipment[slotKey]; if (!item) return; if (item.maxHpPercent && item.maxHpPercent < 0) { gameState.player.maxHp = Math.floor(gameState.player.maxHp / (1 + item.maxHpPercent)); if (gameState.player.hp > gameState.player.maxHp) gameState.player.hp = gameState.player.maxHp; } gameState.player.inventory.push(item); gameState.player.equipment[slotKey] = null; print(`你卸下了「${item.name}」。`); checkKnightSetChange(); clearDetailPanel(); showEquipmentPanel(); }
+function unequipItem(slotKey) {
+    const player = gameState.player;
+    const item = player.equipment[slotKey];
+    if (!item) return;
+    player.inventory.push(item);
+    player.equipment[slotKey] = null;
+    refreshPlayerMaxHp(player);
+    print(`你卸下了「${item.name}」。`);
+    checkKnightSetChange();
+    clearDetailPanel();
+    showEquipmentPanel();
+}
 
 function showStatusPanel() {
     if (currentPanel === 'status') { clearDetailPanel(); currentPanel = null; return; }
@@ -352,15 +416,18 @@ function showQuestDetail(questId, tab) {
 }
 
 function showSkillsPanel() {
+    if (typeof battleState !== 'undefined' && battleState.inBattle) { UI.setDetail(renderBattleDetail()); return; }
     if (currentPanel === 'skills') { clearDetailPanel(); currentPanel = null; return; }
     let html = makeTitle('技能总览');
-    const playerSkills = gameState.player.skills || [];
-    if (playerSkills.length === 0) html += `<div class="detail-empty detail-empty--compact">暂无技能</div>`;
+    if (typeof ensureSkillProgress === 'function') ensureSkillProgress();
+    const playerSkills = (gameState.player.skills || []).filter(id => skills[id] && !skills[id].npcOnly && (typeof skillLevel !== 'function' || skillLevel(id) > 0));
+    if (playerSkills.length === 0) html += `<div class="detail-empty detail-empty--compact">暂无已学技能。获得技能原典后，请在背包中点击原典进行学习。</div>`;
     else {
         html += `<div class="skill-list">`;
         playerSkills.forEach(sId => {
             const s = skills[sId];
-            if (s) html += `<div class="skill-card" onclick="showSkillDetail('${sId}')"><div class="skill-card__top"><span>✨ ${s.name}</span><b>${s.cost} SP</b></div><p>${s.description || '暂无技能说明'}</p></div>`;
+            const managed = typeof PLAYER_SKILL_DEFINITIONS !== 'undefined' && PLAYER_SKILL_DEFINITIONS[sId];
+            html += `<div class="skill-card" onclick="showSkillDetail('${sId}')"><div class="skill-card__top"><span>${managed ? `${RARITY_NAMES[s.rarity]} · ` : '✨ '}${s.name}${managed ? ` Lv.${skillLevel(sId)}` : ''}</span><b>${managed ? skillSpCost(sId) : s.cost} SP</b></div><p>${managed ? skillEffectText(sId) : s.description || '暂无技能说明'}</p><small>点击查看详情${managed ? '／升级' : ''}</small></div>`;
         });
         html += `</div>`;
     }
@@ -369,7 +436,19 @@ function showSkillsPanel() {
 }
 
 function showSkillDetail(skillId) {
-    const skill = skills[skillId]; if (!skill) { print("技能不存在！"); return; }
+    if (typeof battleState !== 'undefined' && battleState.inBattle) { UI.setDetail(renderBattleDetail()); return; }
+    const skill = skills[skillId];
+    if (!skill || skill.npcOnly || !gameState.player.skills?.includes(skillId)) { print("尚未学习此技能。"); return; }
+    if (typeof PLAYER_SKILL_DEFINITIONS !== 'undefined' && PLAYER_SKILL_DEFINITIONS[skillId]) {
+        const lv = skillLevel(skillId), cost = lv < 5 ? SKILL_UPGRADE_COSTS[skill.rarity][lv-1] : 0;
+        if (!lv) { print('尚未学习此技能。'); return; }
+        const owned = bookCount(`training_book_${skill.rarity}`);
+        let html = makeTitle('技能详情') + `<div class="detail-card"><div class="detail-card__header"><span style="color:${RARITY_COLORS[skill.rarity]}">${RARITY_NAMES[skill.rarity]} · ${skill.name} Lv.${lv}</span><span class="detail-card__badge">消耗 ${skillSpCost(skillId)} SP</span></div><p>${skillEffectText(skillId)}</p><p>武器条件：${skill.requireKnightSet ? '骑士三件套' : (skill.categories || []).map(id=>WEAPON_CATEGORIES[id]).join('／') || '无武器限制'}${skill.categories?.some(id=>['greatsword','mining_tool','blunt'].includes(id)) ? '；需双手持握' : ''}</p><p>${skill.once ? '每场战斗一次' : `冷却 ${skill.cooldown || 0} 回合`}</p>`;
+        if (cost) html += `<p>下一级 Lv.${lv+1}：${skillEffectText(skillId,lv+1)} · SP ${skillSpCost(skillId,lv+1)}</p><p>${RARITY_NAMES[skill.rarity]}技能研习册：${owned} / ${cost}</p><button onclick="upgradeLearnedSkill('${skillId}',${lv})" ${owned < cost ? 'disabled' : ''}>升级${owned < cost ? '（研习册不足）' : ''}</button>`;
+        else html += '<p>已满级（Lv.5）</p>';
+        html += '</div>' + makePanelFooter('showSkillsPanel()', '返回技能栏', '←');
+        UI.setDetail(html); currentPanel='skill_detail'; return;
+    }
     let html = makeTitle('技能详情') + `<div class="detail-card"><div class="detail-card__header"><span>✨ ${skill.name}</span><span class="detail-card__badge">消耗 ${skill.cost} SP</span></div><div class="detail-card__desc">${skill.description || '暂无技能说明。'}</div></div>`;
     html += makePanelFooter('showSkillsPanel()', '返回技能栏', '←');
     UI.setDetail(html); currentPanel = 'skill_detail';

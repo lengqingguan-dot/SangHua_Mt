@@ -4,7 +4,6 @@
 
 const GROUND_ITEM_ACTIONS = [
     { match(itemId, item) { return itemId === 'bounty_board'; }, actions(itemId, item, html) { html.push(`<div><span style="color: #cc9966; text-decoration: underline; cursor: pointer;" onclick="showBountyBoard()">📜 查看悬赏</span></div>`); }, earlyReturn: true },
-    { match(itemId, item) { return itemId === 'academy_stone_gate'; }, actions(itemId, item, html) { html.push(`<div><span style="color: #aaffaa; text-decoration: underline; cursor: pointer;" onclick="enterAcademyRuins()">🚪 进入</span></div>`); }, earlyReturn: true },
     { match(itemId, item) { return itemId === 'academy_dungeon_exit'; }, actions(itemId, item, html) { html.push(`<div><span style="color: #aaffaa; text-decoration: underline; cursor: pointer;" onclick="leaveAcademyDungeon()">🚪 离开</span></div>`); }, earlyReturn: true },
     { match(itemId, item) { return itemId === 'academy_dungeon_return_gate'; }, actions(itemId, item, html) { html.push(`<div><span style="color: #cc9966; text-decoration: underline; cursor: pointer;" onclick="leaveAcademyDungeon()">↩ 返回石门</span></div>`); }, earlyReturn: true },
     { match(itemId, item) { return itemId === 'beautiful_white_horse'; }, actions(itemId, item, html) { html.push(`<div><span style="color: #aaffaa; text-decoration: underline; cursor: pointer;" onclick="takeBeautifulWhiteHorse('${itemId}')">🐴 带离</span></div>`); }, earlyReturn: true },
@@ -17,7 +16,7 @@ const GROUND_ITEM_ACTIONS = [
     { match(itemId, item) { return itemId === 'flag_base'; }, actions(itemId, item, html) { html.push(`<div><span style="color: #ff6666; text-decoration: underline; cursor: pointer;" onclick="plantRedFlag('${itemId}')">🚩 插入旗帜</span></div>`); }, earlyReturn: true },
     { match(itemId, item) { return !!PORTAL_DEFS[itemId]; }, actions(itemId, item, html) { html.push(`<div><span style="color: #cc9966; text-decoration: underline; cursor: pointer;" onclick="usePortal('${itemId}')">🪜 使用</span></div>`); } },
     { match(itemId, item) { return itemId === 'ladder'; }, actions(itemId, item, html) { html.push(`<div><span style="color: #cc9966; text-decoration: underline; cursor: pointer;" onclick="useSupervisorLadder()">🪜 使用木梯</span></div>`); } },
-    { match(itemId, item) { return itemId === 'removed_ladder' || (itemId.includes('removed_ladder') && itemId.includes('_dropped_')); }, actions(itemId, item, html) { html.push(`<div><span style="color: #aaffaa; text-decoration: underline; cursor: pointer;" onclick="useRemovedLadder('${itemId}')">🪜 使用</span></div>`); html.push(`<div><span style="color: #aaffaa; text-decoration: underline; cursor: pointer;" onclick="pickupItem('${itemId}')">📦 拾取</span></div>`); } },
+    { match(itemId, item) { return itemTemplateId(item) === 'removed_ladder'; }, actions(itemId, item, html) { html.push(`<div><span style="color: #aaffaa; text-decoration: underline; cursor: pointer;" onclick="pickupItem('${itemId}')">📦 拾取</span></div>`); } },
     { match(itemId, item) { return itemId === 'iron_lock'; }, actions(itemId, item, html) { const hasKey = gameState.player.inventory.some(invItem => invItem && invItem.id === 'mine_exit_4_key'); if (hasKey) html.push(`<div><span style="color: #aaffaa; text-decoration: underline; cursor: pointer;" onclick="openIronLockWithKey('${itemId}')">🔑 使用四号矿井口钥匙</span></div>`); html.push(`<div><span style="color: #ffaa66; text-decoration: underline; cursor: pointer;" onclick="breakLock('${itemId}')">⚔️ 破坏铁锁</span></div>`); } },
     { match(itemId, item) { return itemId === 'heavy_wooden_door'; }, actions(itemId, item, html) { html.push(`<div><span style="color: #ffaa66; text-decoration: underline; cursor: pointer;" onclick="breakDoor('${itemId}', 'heavy')">⚔️ 强行破门</span></div>`); } },
     { match(itemId, item) { return itemId.includes('medium_wooden_door'); }, actions(itemId, item, html) { html.push(`<div><span style="color: #ffaa66; text-decoration: underline; cursor: pointer;" onclick="breakDoor('${itemId}', 'medium')">⚔️ 强行破门</span></div>`); } },
@@ -64,19 +63,11 @@ function takeBeautifulWhiteHorse(itemId) {
 
 // 从山路尽头进入 147 号房间。首次进入走剧情事件；事件已完成时仍允许再次通行。
 function enterKarenTown() {
+    if (battleState.inBattle) { print('战斗中无法使用传送通道。'); return false; }
     if (typeof StoryEngine !== 'undefined' && StoryEngine.triggerUseItem('karen_town')) return;
-
-    clearDetailPanel();
-    currentPanel = null;
-    UI.setOverlay(true);
-    gameState.player.location = 'road';
     if (!gameState.gameFlags) gameState.gameFlags = {};
     gameState.gameFlags.roadEntered = true;
-    UI.setOverlay(false);
-    look();
-    updateMinimap();
-    updateSceneInfo();
-    if (typeof StoryEngine !== 'undefined') StoryEngine.check();
+    return relocateTo('road', { travelText: '你沿着山路走下去，踏上通往卡伦镇的马路。' });
 }
 
 // 挖开墓地中怪异的小土堆：播放剧情，获得「抄写员的手稿」
@@ -231,6 +222,7 @@ function liftDungeonStrawMat(itemId) {
 }
 
 function showGroundItemInfo(itemId) {
+    if(itemId==='academy_stone_gate') return showExplorationDetail('academy_ruins');
     const item = getItemInfoById(itemId);
     if (!item) { printToDetail("找不到该物品信息。"); return; }
     const nameDisplay = getInventoryDisplayName(item);

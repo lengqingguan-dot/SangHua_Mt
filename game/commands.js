@@ -12,6 +12,12 @@ function processCommand(cmd) {
     print(`<span style="color: #aaa;">> ${cmd}</span>`);
 
     switch (action) {
+        case 'skills':
+            showSkillsPanel();
+            break;
+        case 'explore':
+            showExplorationHub();
+            break;
         case 'help':
         case '?':
             showHelp();
@@ -81,6 +87,7 @@ function showHelp() {
     print(" reset         - 重新开始");
     print(" tp <编号>     - 开发者传送 (测试用)");
     print(" exp <数值>    - 开发者经验 (测试用)");
+    print(" skills / explore - 已学技能栏 / 探索与战利品");
     print("（也可以直接点击右侧小地图移动）");
     print("═══════════════════════");
 }

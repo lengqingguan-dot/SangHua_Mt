@@ -96,11 +96,14 @@ function slumChoiceAttack() {
     print('<span style="color:#ff6666;">你没有犹豫，从暗处冲了出去！</span>');
 
     // 胜利后再处理任务推进
-    window._onBattleEnd = function (playerWon) {
-        if (playerWon) slumOnVictory();
-    };
+    window._onBattleEnd = slumAttackBattleCompleted;
 
     startMultiBattle(['slum_guard', 'slum_collector']);
+    battleState.completionHandler = 'slum_attack';
+}
+
+function slumAttackBattleCompleted(playerWon) {
+    if (playerWon) slumOnVictory();
 }
 
 // 冲上去并战胜后：任务描述改变，改为与男人进行「快和我走」的任务对话
@@ -331,15 +334,18 @@ function mandorolaResist() {
     print('');
     print('<span style="color:#ff6666;">你猛地侧身，试图避开那看似松垮实则致命的刀锋！</span>');
 
-    window._onBattleEnd = function (playerWon) {
-        if (playerWon) {
-            removeNpcEverywhere('slum_girl');
-            print('');
-            print('<span style="color:#ffaa66;">女孩倒在了地道里，血渗进冰冷的泥土。你对这条地下通道一无所知，唯一的引路人已经死了。</span>');
-        }
-    };
+    window._onBattleEnd = mandorolaResistBattleCompleted;
 
     startBattle('slum_girl');
+    battleState.completionHandler = 'mandorola_resist';
+}
+
+function mandorolaResistBattleCompleted(playerWon) {
+    if (playerWon) {
+        removeNpcEverywhere('slum_girl');
+        print('');
+        print('<span style="color:#ffaa66;">女孩倒在了地道里，血渗进冰冷的泥土。你对这条地下通道一无所知，唯一的引路人已经死了。</span>');
+    }
 }
 
 // 同意 → 改名并移动到带大铁门的房间，更新任务6

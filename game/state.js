@@ -15,6 +15,7 @@ function getDefaultGameState() {
             atk: 3,
             def: 2,
             agi: 3,
+            permanentBonuses: { maxHp: 0, atk: 0, def: 0, agi: 0 },
             level: 1,
             exp: 0,
             maxExp: 20,
@@ -22,6 +23,7 @@ function getDefaultGameState() {
             location: "mine_deep",
             inventory: [],
             skills: ['hatred'],
+            skillProgress: { hatred: { level: 1, learnedSource: 'initial' } },
             equipment: {
                 weapon: createItemFromTemplate('pickaxe'),
                 armor: createItemFromTemplate('miners_cloth'),

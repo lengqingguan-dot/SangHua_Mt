@@ -64,16 +64,8 @@ function showRoomInfo(room) {
     StoryEngine.check();
 }
 
-function enterChurchPorch() {
-    clearDetailPanel();
-    currentPanel = null;
-    print("");
-    print(`<span style="color: #aaffaa;">你推开沉重的木门，踏入了教堂...</span>`);
-    print("");
-    relocateTo("church_porch", { skipCheck: true });
-}
-
 function updateMinimap() {
+    const currentWorld = gameState.world;
     const currentLoc = gameState.player.location;
     const room = gameState.world[currentLoc];
     if (!room) return;
@@ -108,7 +100,11 @@ function updateMinimap() {
         if (roomName) {
             cell.classList.remove('empty'); cell.classList.add('clickable');
             span.textContent = roomName;
-            const handler = () => moveByButton(dir);
+            const targetId = exits[dir];
+            const handler = () => {
+                if(gameState.world!==currentWorld || gameState.player.location!==currentLoc || currentWorld[currentLoc]?.exits[dir]!==targetId) return false;
+                return moveByButton(dir);
+            };
             cell._clickHandler = handler;
             cell.addEventListener('click', handler);
         } else {
@@ -127,7 +123,7 @@ function updateSceneInfo() {
     const room = gameState.world[loc];
     if (!room) { sceneListDiv.innerHTML = '— 暂无 —'; return; }
 
-    let html = '';
+    let html = typeof explorationSceneActions === 'function' ? explorationSceneActions() : '';
 
     // NPC
     if (room.npcs && room.npcs.length > 0) {

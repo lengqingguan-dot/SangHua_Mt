@@ -2,7 +2,7 @@
 <html lang="zh">
 <head>
     <meta charset="UTF-8">
-    <title>夜出桑华山</title>
+    <title>夜出桑华山 · 0.2.9</title>
     <style>
         * {
             box-sizing: border-box;
@@ -620,6 +620,8 @@
         .npc-portrait-viewer__close:hover { color: #fff0bd; border-color: #c5a65e; background: linear-gradient(145deg,#3a301d,#171b20); transform: rotate(90deg) scale(1.05); }
         #detail-panel .npc-profile__desc { margin: 0; padding: 10px; background: rgba(10,16,24,.68); border-left: 2px solid #554a33; }
         #detail-panel .detail-action-grid { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 6px; margin-top: 9px; }
+        #detail-panel .dungeon-actions { grid-template-columns: repeat(2, minmax(0,1fr)); }
+        #detail-panel .dungeon-actions button:disabled { opacity: .42; cursor: not-allowed; box-shadow: none; }
         #detail-panel .detail-action {
             margin: 0; padding: 7px 5px; color: #b8c7d5 !important; background: #111923;
             border: 1px solid #344557 !important; border-radius: 2px; text-align: center; text-decoration: none !important;
@@ -778,7 +780,7 @@
             display: none;
         }
         #block-overlay.active ~ h1,
-        #block-overlay.active ~ .game-container button:not(.skill-button),
+        #block-overlay.active ~ .game-container button:not(.skill-button):not(.battle-control),
         #block-overlay.active ~ .game-container .map-cell,
         #block-overlay.active ~ .game-container input,
         #block-overlay.active ~ .game-container .left-panel {
@@ -794,6 +796,9 @@
             pointer-events: auto;
             border-color: #ff8844;
         }
+        .battle-control { margin: 5px; padding: 7px 11px; border: 1px solid #b89c59; border-radius: 5px; background: #222b37; color: #f0d798; cursor: pointer; }
+        .battle-target { margin: 7px 0; padding: 8px; border: 1px solid #39495a; border-radius: 5px; }
+        .battle-target--selected { border-color: #eac56a; background: #302c20; }
         body.battle-mode #block-overlay.active ~ .game-container .map-cell.clickable:hover {
             background: #2a1a10;
             border-color: #ffaa66;
@@ -858,6 +863,7 @@
     <button id="story-skip-btn" onclick="StoryEngine.skipLines()">▶▶ 跳过</button>
     <div id="main-menu">
         <h1>夜出桑华山</h1>
+        <p style="text-align:center;color:#b89c59">版本-0.2.9</p>
         <div class="menu-buttons">
             <button onclick="startGame()">🎮 开始游戏</button>
             <button onclick="loadGameFromMenu()">📚 读取存档</button>
@@ -965,6 +971,11 @@
     <script src="ui.js"></script>
     <script src="game/battle.js"></script>
     <script src="game/skills.js"></script>
+    <script src="game/content029.js"></script>
+    <script src="game/expeditionLimbText.js"></script>
+    <script src="game/expeditionContent.js"></script>
+    <script src="game/skillProgression.js"></script>
+    <script src="game/combatTargeting.js"></script>
     <script src="game/state.js"></script>
     <script src="game/bountySystem.js"></script>
     <script src="game/devTools.js"></script>
@@ -983,6 +994,7 @@
     <script src="game/inventoryPanels.js"></script>
     <script src="game/sceneItems.js"></script>
     <script src="game/dungeonSystem.js"></script>
+    <script src="game/exploration.js"></script>
     <script src="game/crafting.js"></script>
     <script src="game/corpseSystem.js"></script>
     <script src="game/scenes.js"></script>

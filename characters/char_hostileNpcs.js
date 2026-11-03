@@ -1,7 +1,6 @@
 // ============================================================
 //  characters/char_hostileNpcs.js - 敌对NPC
-//  hostile: true，主动攻击玩家
-//  监工、发狂矿工、发狂的监工
+//  发狂矿工、发狂的监工主动攻击玩家；普通监工保持中立
 // ============================================================
 
 Object.assign(CHARACTER_TEMPLATES, {
@@ -13,13 +12,13 @@ Object.assign(CHARACTER_TEMPLATES, {
         type: "npc",
         desc: "一个身穿制服的监工，手持铁棍，正警惕地注视着矿道出口方向。",
         dialogue: [
-            "站住！你以为你能逃出去？",
-            "想走？先把今天的矿石交上来！九十九块，一块都不能少！",
-            "没有足够的石块，就别想离开这里半步！"
+            "「往哪儿钻？今天的活干完了？」",
+            "「一百块石头，少一块，你今晚就睡在坑里！」",
+            "「还愣着干什么？没交齐就滚回去抡镐！」"
         ],
         repeatDialogue: [
-            "还站在这里干什么？还不快去挖矿石！",
-            "今天的指标还没完成，别想偷懒！"
+            "「又来晃什么？石头呢？」",
+            "「一百块！少拿那些碎渣糊弄我，回去干活！」"
         ],
         level: 2,
         hp: 25,
@@ -29,7 +28,7 @@ Object.assign(CHARACTER_TEMPLATES, {
         agi: 5,
         canTalk: true,
         canFight: true,
-        hostile: true,
+        hostile: false,
         drops: ["bread"],
         exp: 10
     },

@@ -137,10 +137,7 @@ function buildGenericFemaleLimb(part, score, footSize, cup, sourceLabel = '女�
     if (part === 'breast') desc = desc.replace(/\{cup\}/g, cup || '未知');
     desc = _addGenericFemaleSource(desc, sourceLabel);
 
-    // 名称直接附带码数/罩杯，避免同名堆叠
-    let limbName = `${sourceLabel}的${GENERIC_LIMB_PART_NAMES[part]}`;
-    if (part === 'foot') limbName = `${limbName}（${footSize || '未知码'}）`;
-    if (part === 'breast') limbName = `${limbName}（${cup || '未知罩杯'}）`;
+    const limbName = `${sourceLabel}的${GENERIC_LIMB_PART_NAMES[part]}`;
     const idPrefix = GENERIC_FEMALE_SOURCE_IDS[sourceLabel] || 'generic';
 
     return {
@@ -149,6 +146,8 @@ function buildGenericFemaleLimb(part, score, footSize, cup, sourceLabel = '女�
         type: 'limb',
         rarity: quality,
         score: score,
+        ...(part==='foot'?{footSize}:{}),
+        ...(part==='breast'?{cup}:{}),
         desc: desc
     };
 }
